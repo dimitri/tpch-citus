@@ -1,0 +1,64 @@
+REPOSITORY = https://github.com/citusdata/test-automation
+BRANCH     = tpch-pg
+DBNAME     = tpch
+
+# we target Scale Factor of 30TB, that's 30000
+# and we go by chunks of 1GB for first testing
+# we plan to then switch to 100GB chunks, using C = 300
+SF = 30000
+C  = 30000
+S ?= 1
+
+DSN ?= postgresql://tpch@localhost:5432/TPCH
+
+TEST     = /home/ec2-user/test-automation/
+TPCH     = $(TEST)/tpch_2_13_0
+SCHEMA   = $(TPCH)/tpch_create_tables_pg.ddl
+CARDVIEW = $(TPCH)/cardinalities.sql
+QUERIES  = ..//queries/
+DBGEN    = ./dbgen
+QGEN     = DSS_QUERY=$(QUERIES) ./qgen
+STREAM  ?= 1
+
+all: os repo ;
+
+os:
+	sudo yum -y groupinstall "Development Tools"
+	sudo yum -y install git htop tmux emacs
+	sudo yum -y install postgresql96*
+	sudo yum -y install python36 python36-pip
+	sudo pip-3.6 install psycopg2
+
+repo:
+	rm -rf $(TEST)
+	git clone https://github.com/citusdata/test-automation $(TEST)
+	cd $(TEST) && git checkout tpch-pg
+	cd $(TPCH)/src && make
+
+init:
+	# init is -S 1 by definition, always
+	psql -a -d $(DSN) -f $(SCHEMA)
+	cd $(TPCH)/src && $(DBGEN) -s $(SF) -C $(C) -S 1 -D -n $(DSN) -v
+	psql -a -d $(DSN) -f loader/tpch-pkeys.sql
+	psql -a -d $(DSN) -f loader/tpch-index.sql
+	psql -a -d $(DSN) -f loader/tpch-alter.sql
+	psql -a -d $(DSN) -c '\timing' -c 'vacuum verbose analyze;'
+
+load:
+	# load the next Step of data
+	cd $(TPCH)/src && $(DBGEN) -s $(SF) -C $(C) -S $(S) -D -n $(DSN) -v
+	psql -a -d $(DSN) -c '\timing' -c 'vacuum verbose analyze;'
+
+cardinalities:
+	psql -d $(DSN) -f $(CARDVIEW) -c '\timing' -c 'TABLE cardinalities;'
+
+stream:
+	cd $(TPCH)/src && $(QGEN) $(STREAM) | psql -o /dev/null -d $(DSN) -c '\timing' -f -
+
+refresh:
+	cd $(TPCH)/src && $(DBGEN) -s $(SF) -U $(C) -S $(S) -D -n $(DSN) -v
+
+drop:
+	psql -a -d $(DSN) -c 'drop table nation, region, part, supplier, partsupp, customer, orders, lineitem cascade;'
+
+.PHONY: dbgen repo os init load stream refresh drop

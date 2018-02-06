@@ -71,7 +71,8 @@ class Cluster():
         )
         if self.filename and os.path.exists(self.filename):
             os.remove(self.filename)
-        return res['DBCluster']['Status'], res['DBCluster']['PercentProgress']
+
+        return res['DBCluster']['Status']
 
 
 class Aurora(rds.RDS):
@@ -119,3 +120,16 @@ class Aurora(rds.RDS):
             self.cluster.Port,
             self.conf.aurora.name
         )
+
+    def delete(self):
+        instance_ret = self.conn.delete_db_instance(
+            DBInstanceIdentifier = self.id,
+            SkipFinalSnapshot = True
+        )
+        if self.filename and os.path.exists(self.filename):
+            os.remove(self.filename)
+
+        cluster_status = self.cluster.delete()
+
+        return cluster_status, instance_ret['DBInstance']['DBInstanceStatus']
+

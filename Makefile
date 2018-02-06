@@ -32,10 +32,10 @@ rds: $(RDS) ;
 aurora: $(AURORA) ;
 
 terminate:
-	echo $(DRIVER) ec2 terminate --json $(RDS_LOADER)
-	echo $(DRIVER) ec2 terminate --json $(AURORA_LOADER)
-	echo $(DRIVER) rds delete --json $(RDS)
-	echo $(DRIVER) aurora delete --json $(RDS)
+	$(DRIVER) ec2 terminate --json $(RDS_LOADER)
+	$(DRIVER) ec2 terminate --json $(AURORA_LOADER)
+	$(DRIVER) rds delete --json $(RDS)
+	$(DRIVER) aurora delete --json $(AURORA)
 
 init: init-rds init-aurora ;
 

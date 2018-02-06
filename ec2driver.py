@@ -304,6 +304,19 @@ def dsn(ctx, json):
     aurora = Aurora(conf, conn, json)
     click.echo(aurora.dsn())
 
+@aurora.command()
+@click.option('--json',
+              required=True,
+              type=click.Path(exists=True),
+              help='already stored AWS JSON output for an instance')
+@click.pass_context
+def delete(ctx, json):
+    conf = ctx.obj['CONFIG']
+    conn = boto3.client('rds', conf.region)
+    aurora = Aurora(conf, conn, json)
+    click.echo(aurora.delete())
+
+
 @click.group()
 @click.option('--config',
               type=click.Path(exists=True),

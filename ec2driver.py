@@ -61,13 +61,10 @@ def list():
               help='already stored AWS JSON output for an instance')
 @click.pass_context
 def ip(ctx, json):
-    if json:
-        conf = ctx.obj['CONFIG']
-        conn = boto3.client('ec2', conf.region)
-        instance = Instance(conf, conn, json)
-        click.echo(instance.public_ip())
-    else:
-        click.echo('option JSON is mandatory')
+    conf = ctx.obj['CONFIG']
+    conn = boto3.client('ec2', conf.region)
+    instance = Instance(conf, conn, json)
+    click.echo(instance.public_ip())
 
 
 @ec2.command()
@@ -77,14 +74,10 @@ def ip(ctx, json):
               help='already stored AWS JSON output for an instance')
 @click.pass_context
 def wait(ctx, json):
-    if json:
-        conf = ctx.obj['CONFIG']
-        conn = boto3.client('ec2', conf.region)
-        instance = Instance(conf, conn, json)
-        click.echo(instance.wait_for_public_ip())
-
-    else:
-        click.echo('option JSON is mandatory')
+    conf = ctx.obj['CONFIG']
+    conn = boto3.client('ec2', conf.region)
+    instance = Instance(conf, conn, json)
+    click.echo(instance.wait_for_public_ip())
 
 
 @ec2.command()
@@ -94,13 +87,10 @@ def wait(ctx, json):
               help='already stored AWS JSON output for an instance')
 @click.pass_context
 def start(ctx, json):
-    if json:
-        conf = ctx.obj['CONFIG']
-        conn = boto3.client('ec2', conf.region)
-        instance = Instance(conf, conn, json)
-        click.echo(instance.start())
-    else:
-        click.echo('option JSON is mandatory')
+    conf = ctx.obj['CONFIG']
+    conn = boto3.client('ec2', conf.region)
+    instance = Instance(conf, conn, json)
+    click.echo(instance.start())
 
 
 @ec2.command()
@@ -110,13 +100,10 @@ def start(ctx, json):
               help='already stored AWS JSON output for an instance')
 @click.pass_context
 def stop(ctx, json):
-    if json:
-        conf = ctx.obj['CONFIG']
-        conn = boto3.client('ec2', conf.region)
-        instance = Instance(conf, conn, json)
-        click.echo(instance.stop())
-    else:
-        click.echo('option JSON is mandatory')
+    conf = ctx.obj['CONFIG']
+    conn = boto3.client('ec2', conf.region)
+    instance = Instance(conf, conn, json)
+    click.echo(instance.stop())
 
 
 @ec2.command()
@@ -148,13 +135,10 @@ def terminate(ctx, id, json):
               help='Filename where to store AWS JSON output for an instance')
 @click.pass_context
 def run(ctx, json):
-    if json:
-        conf = ctx.obj['CONFIG']
-        conn = boto3.client('ec2', conf.region)
-        instance = Instance(conf, conn, json)
-        click.echo(instance.run())
-    else:
-        click.echo('option JSON is mandatory')
+    conf = ctx.obj['CONFIG']
+    conn = boto3.client('ec2', conf.region)
+    instance = Instance(conf, conn, json)
+    click.echo(instance.run())
 
 
 
@@ -297,16 +281,14 @@ def list():
               help='Filename where to store AWS JSON output for an Aurora instance.')
 @click.pass_context
 def create(ctx, json):
-    if json:
-        conf = ctx.obj['CONFIG']
-        conn = boto3.client('rds', conf.region)
-        aurora = Aurora(conf, conn, json)
-        click.echo(aurora.create())
-    else:
-        click.echo('option JSON is mandatory')
+    conf = ctx.obj['CONFIG']
+    conn = boto3.client('rds', conf.region)
+    aurora = Aurora(conf, conn, json)
+    click.echo(aurora.create())
 
 @aurora.command()
 @click.option('--json',
+              required=True,
               type=click.Path(exists=True),
               help='already stored AWS JSON output for a DB Cluster.')
 @click.pass_context

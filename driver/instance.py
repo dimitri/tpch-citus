@@ -90,7 +90,11 @@ class Instance():
             time.sleep(1)
             status = self.status()
 
-        return self.public_ip()
+        # ok it's running, what about actually listening to ssh connections?
+        ip = self.public_ip()
+        utils.wait_for_service(ip, port=22)
+
+        return ip
 
     def start(self):
         res = self.conn.start_instances(InstanceIds = [self.id])

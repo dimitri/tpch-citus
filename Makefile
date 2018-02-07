@@ -11,7 +11,7 @@ STREAM = '1 3 6 12'
 DRIVER = ./ec2driver.py --config ./ec2.ini
 WAIT   = $(DRIVER) ec2 wait --json
 DSN    = $(DRIVER) rds wait --json
-RSYNC  = rsync -avz --exclude=.git
+RSYNC  = rsync -e "ssh -o StrictHostKeyChecking=no" -avz --exclude=.git
 
 #
 # Make commands to help write targets
@@ -31,11 +31,13 @@ loaders: $(RDS_LOADER) $(AURORA_LOADER) ;
 rds: $(RDS) ;
 aurora: $(AURORA) ;
 
-terminate:
-	$(DRIVER) ec2 terminate --json $(RDS_LOADER)
-	$(DRIVER) ec2 terminate --json $(AURORA_LOADER)
+terminate: terminate-loaders
 	$(DRIVER) rds delete --json $(RDS)
 	$(DRIVER) aurora delete --json $(AURORA)
+
+terminate-loaders:
+	$(DRIVER) ec2 terminate --json $(RDS_LOADER)
+	$(DRIVER) ec2 terminate --json $(AURORA_LOADER)
 
 init: init-rds init-aurora ;
 
@@ -93,3 +95,4 @@ aws.out/%.aurora.json:
 .PHONY: loaders list-zones list-amis init status
 .PHONY: init-rds init-aurora load-rds load-aurora
 .PHONY: stream-rds stream-aurora
+.PHONY: terminate terminate-loaders

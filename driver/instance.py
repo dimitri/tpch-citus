@@ -88,7 +88,7 @@ class Instance():
 
         while status != 'running':
             time.sleep(1)
-            status = instance.status()
+            status = self.status()
 
         return self.public_ip()
 

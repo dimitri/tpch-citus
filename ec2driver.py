@@ -230,6 +230,18 @@ def dsn(ctx, json):
               type=click.Path(exists=True),
               help='already stored AWS JSON output for an instance')
 @click.pass_context
+def wait(ctx, json):
+    conf = ctx.obj['CONFIG']
+    conn = boto3.client('rds', conf.region)
+    rds = RDS(conf, conn, json)
+    click.echo(rds.wait_for_dsn())
+
+@rds.command()
+@click.option('--json',
+              required=True,
+              type=click.Path(exists=True),
+              help='already stored AWS JSON output for an instance')
+@click.pass_context
 def stop(ctx, json):
     conf = ctx.obj['CONFIG']
     conn = boto3.client('rds', conf.region)

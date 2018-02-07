@@ -76,6 +76,15 @@ class RDS():
         else:
             return 'No DSN yet: %s' % status
 
+    def wait_for_dsn(self):
+        dsn = self.dsn()
+
+        while dsn.startswith(u'No DSN yet:'):
+            time.sleep(30)      # creating an RDS instance takes a long time!
+            dsn = self.dsn()
+
+        return dsn
+
     def start(self):
         res = self.conn.start_db_instance(DBInstanceIdentifier = self.id)
         return res['DBInstance']['DBInstanceStatus']

@@ -10,7 +10,7 @@ STREAM = '1 3 6 12'
 
 DRIVER = ./ec2driver.py --config ./ec2.ini
 WAIT   = $(DRIVER) ec2 wait --json
-DSN    = $(DRIVER) rds dsn --json
+DSN    = $(DRIVER) rds wait --json
 RSYNC  = rsync -avz --exclude=.git
 
 #

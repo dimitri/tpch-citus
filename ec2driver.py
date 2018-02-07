@@ -53,6 +53,7 @@ def list():
                                        instance.key_name,
                                        instance.state['Name'],
                                        instance.public_ip_address))
+    print()
 
 @ec2.command()
 @click.option('--json',
@@ -159,6 +160,7 @@ def list():
                                            instance['DBInstanceClass'],
                                            instance['Engine'],
                                            instance['DBInstanceStatus']))
+    print()
 
 @rds.command()
 @click.option('--json',
@@ -273,6 +275,7 @@ def list():
             print("%20s %12s %20s" % (cluster['DBClusterIdentifier'],
                                       cluster['Status'],
                                       cluster['Engine']))
+    print()
 
 @aurora.command()
 @click.option('--json',

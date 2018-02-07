@@ -63,6 +63,11 @@ cardinalities:
 	$(call rmake,$(RDS_LOADER),$(RDS),cardinalities)
 	$(call rmake,$(AURORA_LOADER),$(AURORA),cardinalities)
 
+status:
+	$(DRIVER) ec2 list
+	$(DRIVER) rds list
+	$(DRIVER) aurora list
+
 list-zones:
 	aws --region $(REGION) ec2 describe-availability-zones | \
 	jq '.AvailabilityZones[].ZoneName'
@@ -85,6 +90,6 @@ aws.out/%.rds.json:
 aws.out/%.aurora.json:
 	$(DRIVER) aurora create --json $@
 
-.PHONY: loaders list-zones list-amis init
+.PHONY: loaders list-zones list-amis init status
 .PHONY: init-rds init-aurora load-rds load-aurora
 .PHONY: stream-rds stream-aurora

@@ -40,7 +40,7 @@ repo:
 init:
 	# init is -S 1 by definition, always
 	psql -a -d $(DSN) -f $(SCHEMA)
-	cd $(TPCH)/src && $(DBGEN) -s $(SF) -C $(C) -S 1 -D -n $(DSN) -v
+	cd $(TPCH)/src && $(DBGEN) -s $(SF) -C $(C) -S 1 -D -n $(DSN)
 	psql -a -d $(DSN) -f loader/tpch-pkeys.sql
 	psql -a -d $(DSN) -f loader/tpch-index.sql
 	psql -a -d $(DSN) -f loader/tpch-alter.sql
@@ -48,7 +48,7 @@ init:
 
 load:
 	# load the next Step of data
-	cd $(TPCH)/src && $(DBGEN) -s $(SF) -C $(C) -S $(S) -D -n $(DSN) -v
+	cd $(TPCH)/src && $(DBGEN) -s $(SF) -C $(C) -S $(S) -D -n $(DSN)
 	psql -a -d $(DSN) -c '\timing' -c 'vacuum analyze;'
 
 cardinalities:

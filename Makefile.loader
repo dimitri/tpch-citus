@@ -5,8 +5,10 @@ DBNAME     = tpch
 # we target Scale Factor of 30TB, that's 30000
 # and we go by chunks of 1GB for first testing
 # we plan to then switch to 100GB chunks, using C = 300
-SF = 30000
-C  = 30000
+# SF = 30000
+# C  = 300
+SF = 10
+C  = 100
 S ?= 1
 
 DSN ?= postgresql://tpch@localhost:5432/TPCH
@@ -42,12 +44,12 @@ init:
 	psql -a -d $(DSN) -f loader/tpch-pkeys.sql
 	psql -a -d $(DSN) -f loader/tpch-index.sql
 	psql -a -d $(DSN) -f loader/tpch-alter.sql
-	psql -a -d $(DSN) -c '\timing' -c 'vacuum verbose analyze;'
+	psql -a -d $(DSN) -c '\timing' -c 'vacuum analyze;'
 
 load:
 	# load the next Step of data
 	cd $(TPCH)/src && $(DBGEN) -s $(SF) -C $(C) -S $(S) -D -n $(DSN) -v
-	psql -a -d $(DSN) -c '\timing' -c 'vacuum verbose analyze;'
+	psql -a -d $(DSN) -c '\timing' -c 'vacuum analyze;'
 
 cardinalities:
 	psql -d $(DSN) -f $(CARDVIEW) -c '\timing' -c 'TABLE cardinalities;'

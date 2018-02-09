@@ -1,9 +1,12 @@
 import shlex
 import subprocess
 
-def run_command(command, verbose=True):
+def run_command(command, verbose=False):
     "Run a command in a subprocess"
     cmd = shlex.split(command)
+
+    if verbose:
+        print(cmd)
 
     with subprocess.Popen (cmd, stdout=subprocess.PIPE) as p:
         return p.stdout.readlines()

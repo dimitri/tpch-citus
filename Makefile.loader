@@ -12,7 +12,6 @@ STREAM  ?= 1
 
 TPCH_PG  = ./tpch-pg/
 TPCH_SRC = ./tpch-pg/src/
-CARDVIEW = ./schema/cardinalities.sql
 QUERIES  = ../queries/
 DBGEN    = ./dbgen
 QGEN     = DSS_QUERY=$(QUERIES) ./qgen
@@ -48,7 +47,7 @@ load:
 	$(PSQL) -c '\timing' -c 'vacuum analyze;'
 
 cardinalities:
-	$(PSQL) -f $(CARDVIEW) -c '\timing' -c 'TABLE cardinalities;'
+	$(PSQL) -c '\timing' -c 'TABLE cardinalities;'
 
 stream:
 	cd $(TPCH_SRC) && $(QGEN) $(STREAM)             \
@@ -60,4 +59,5 @@ refresh:
 drop:
 	$(PSQL) -c 'drop table $(TABLES) cascade;'
 
-.PHONY: dbgen repo os init load stream refresh drop
+.PHONY: dbgen repo os load stream refresh drop
+.PHONY: schema constraints vacuum

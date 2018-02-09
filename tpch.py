@@ -13,12 +13,24 @@ import sys
 from tpch import setup
 from tpch.load import Load
 from tpch.stream import Stream
+from tpch.initdb import InitDB
 
 import click
 
 @click.group()
 def cli():
     pass
+
+@cli.command()
+@click.option("--ini", default=CONF)
+@click.argument('name')
+@click.argument('kind', default='pgsql')
+@click.argument('phase', default='initdb')
+def initdb(name, kind, phase, ini):
+    conf = setup.Setup(ini)
+    cmd = InitDB(conf, kind=kind, phase=phase)
+    cmd.run(name)
+
 
 @cli.command()
 @click.option("--ini", default=CONF)

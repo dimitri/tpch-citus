@@ -1,6 +1,8 @@
 import configparser
 from collections import namedtuple
 
+from . import utils
+
 Scale   = namedtuple('Scale', 'cpu factor children')
 Stream  = namedtuple('Stream', 'queries duration')
 Schema  = namedtuple('Schema', 'pgsql citus constraints')
@@ -19,7 +21,7 @@ class Setup():
 
         self.load = {}
         for option in conf.options('load'):
-            self.load[option] = conf.get('load', option)
+            self.load[option] = utils.expand_step_range(conf.get('load', option))
 
         self.stream = Stream(
             queries = conf.get('stream', 'queries'),

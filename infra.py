@@ -8,10 +8,10 @@ import boto3
 from datetime import date, datetime
 from collections import namedtuple
 
-from driver.setup import Setup
-from driver.instance import Instance
-from driver.rds import RDS
-from driver.aurora import Aurora
+from infra.setup import Setup
+from infra.instance import Instance
+from infra.rds import RDS
+from infra.aurora import Aurora
 
 import click
 
@@ -316,6 +316,7 @@ def delete(ctx, json):
 
 @click.group()
 @click.option('--config',
+              default='infra.ini',
               type=click.Path(exists=True),
               help='configuration file [.ini]')
 @click.pass_context

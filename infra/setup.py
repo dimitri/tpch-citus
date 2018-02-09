@@ -15,16 +15,17 @@ Aurora_conf = namedtuple('Aurora', 'name iclass stype')
 class Setup():
     def __init__(self, filename):
         conf = configparser.ConfigParser()
-        conf.read("./ec2.ini")
+        conf.read(filename)
 
-        self.region  = conf.get('ec2', 'REGION')
-        self.az      = conf.get('ec2', 'AZ')
-        self.vpc     = conf.get('ec2', 'VPC')
-        self.subnet  = conf.get('ec2', 'SUBNET')
-        self.sg      = conf.get('ec2', 'SG')
-        self.ami     = conf.get('ec2', 'AMI')
-        self.keyname = conf.get('ec2', 'KeyName')
-        self.itype   = conf.get('ec2', 'INSTANCE')
+        self.region  = conf.get('aws', 'REGION')
+        self.az      = conf.get('aws', 'AZ')
+        self.vpc     = conf.get('aws', 'VPC')
+        self.subnet  = conf.get('aws', 'SUBNET')
+        self.sg      = conf.get('aws', 'SG')
+        self.ami     = conf.get('aws', 'AMI')
+        self.keyname = conf.get('aws', 'KeyName')
+
+        self.itype   = conf.get('loader', 'instance')
 
         self.ebs = EBS_conf(iops = conf.getint('ebs', 'iops'),
                             size = conf.getint('ebs', 'size'),

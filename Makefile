@@ -5,17 +5,10 @@ RDS_LOADER  = aws.out/rds.loader.json
 AURORA        = aws.out/db.aurora.json
 AURORA_LOADER = aws.out/aurora.loader.json
 
-# Parameters that you can set from the outside.
-CPU      ?= 16
-DURATION ?= 120
-S        ?= 2
-STREAM   ?= '1 3 6 12'
-
-DRIVER = ./ec2driver.py --config ./ec2.ini
-WAIT   = $(DRIVER) ec2 wait --json
-DSN    = $(DRIVER) rds wait --json
+INFRA  = ./infra.py --config ./infra.ini
+WAIT   = $(INFRA) ec2 wait --json
+DSN    = $(INFRA) rds wait --json
 RSYNC  = rsync -e "ssh -o StrictHostKeyChecking=no" -avz --exclude=.git
-TPCH_O = $(CPU) $(DURATION)
 
 #
 # Make commands to help write targets
@@ -30,10 +23,10 @@ all: prepare ;
 tpch: tpch-rds tpch-aurora ;
 
 tpch-rds: loader-rds rds
-	$(call tpch,$(RDS_LOADER),$(RDS),stream rds $(STREAM) $(TPCH_O))
+	$(call tpch,$(RDS_LOADER),$(RDS),stream rds)
 
 tpch-aurora: loader-aurora aurora
-	$(call tpch,$(AURORA_LOADER),$(AURORA),stream aurora $(STREAM) $(TPCH_O))
+	$(call tpch,$(AURORA_LOADER),$(AURORA),stream aurora)
 
 prepare: rds aurora loaders ;
 
@@ -51,29 +44,22 @@ rds: $(RDS) ;
 aurora: $(AURORA) ;
 
 terminate: terminate-loaders
-	$(DRIVER) rds delete --json $(RDS)
-	$(DRIVER) aurora delete --json $(AURORA)
+	$(INFRA) rds delete --json $(RDS)
+	$(INFRA) aurora delete --json $(AURORA)
 
 terminate-loaders:
-	$(DRIVER) ec2 terminate --json $(RDS_LOADER)
-	$(DRIVER) ec2 terminate --json $(AURORA_LOADER)
+	$(INFRA) ec2 terminate --json $(RDS_LOADER)
+	$(INFRA) ec2 terminate --json $(AURORA_LOADER)
 
 load: load-rds load-aurora ;
 stream: stream-rds stream-aurora ;
 drop: drop-rds drop-aurora ;
 
-load-phase-1: load-rds-phase-1 load-aurora-phase-1 ;
-load-phase-2: load-rds-phase-2 load-aurora-phase-2 ;
-load-phase-3: load-rds-phase-3 load-aurora-phase-3 ;
+load-rds:
+	$(call tpch,$(RDS_LOADER),$(RDS),load rds $(PHASE))
 
-load-rds-phase-1: loader-rds
-	$(call tpch,$(RDS_LOADER),$(RDS),load rds 1..10 $(CPU))
-
-load-rds-phase-2: loader-rds
-	$(call tpch,$(RDS_LOADER),$(RDS),load rds 11..30 $(CPU))
-
-load-rds-phase-3: loader-rds
-	$(call tpch,$(RDS_LOADER),$(RDS),load rds 31..100 $(CPU))
+load-aurora:
+	$(call tpch,$(AURORA_LOADER),$(AURORA),load aurora $(PHASE))
 
 stream-rds:
 	$(call rmake,$(RDS_LOADER),$(RDS),stream,STREAM=$(STREAM))
@@ -86,15 +72,6 @@ psql-rds:
 
 drop-rds:
 	$(call rmake,$(RDS_LOADER),$(RDS),drop)
-
-load-aurora-phase-1: loader-aurora
-	$(call tpch,$(AURORA_LOADER),$(AURORA),load aurora 1..10 $(CPU))
-
-load-aurora-phase-2: loader-aurora
-	$(call tpch,$(AURORA_LOADER),$(AURORA),load aurora 11..30 $(CPU))
-
-load-aurora-phase-3: loader-aurora
-	$(call tpch,$(AURORA_LOADER),$(AURORA),load aurora 31..100 $(CPU))
 
 stream-aurora:
 	$(call rmake,$(AURORA_LOADER),$(AURORA),stream,STREAM=$(STREAM))
@@ -110,9 +87,9 @@ cardinalities:
 	$(call rmake,$(AURORA_LOADER),$(AURORA),cardinalities)
 
 status:
-	$(DRIVER) ec2 list
-	$(DRIVER) rds list
-	$(DRIVER) aurora list
+	$(INFRA) ec2 list
+	$(INFRA) rds list
+	$(INFRA) aurora list
 
 list-zones:
 	aws --region $(REGION) ec2 describe-availability-zones | \
@@ -128,13 +105,13 @@ list-amis:
                       | {"ImageId": .ImageId, "Description": .Description}'
 
 aws.out/%.loader.json:
-	$(DRIVER) ec2 run --json $@
+	$(INFRA) ec2 run --json $@
 
 aws.out/%.rds.json:
-	$(DRIVER) rds create --json $@
+	$(INFRA) rds create --json $@
 
 aws.out/%.aurora.json:
-	$(DRIVER) aurora create --json $@
+	$(INFRA) aurora create --json $@
 
 .PHONY: loaders list-zones list-amis status
 .PHONY: shell-rds shell-aurora psql-rds psql-aurora

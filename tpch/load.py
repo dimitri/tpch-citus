@@ -13,11 +13,7 @@ def load(step, scale_factor, children):
 class Load():
     def __init__(self, conf):
         self.conf = conf
-        self.phases = {
-            "phase1": utils.expand_step_range(self.conf.load.phase1),
-            "phase2": utils.expand_step_range(self.conf.load.phase2),
-            "phase3": utils.expand_step_range(self.conf.load.phase3)
-        }
+        self.phases = self.conf.load
 
     def run(self, name, phase):
         "Load the next STEPs using as many as CPU cores."

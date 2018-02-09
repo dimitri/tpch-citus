@@ -2,7 +2,6 @@ import configparser
 from collections import namedtuple
 
 Scale   = namedtuple('Scale', 'cpu factor children')
-Load    = namedtuple('Load', 'phase1 phase2 phase3')
 Stream  = namedtuple('Stream', 'queries duration')
 Schema  = namedtuple('Schema', 'pgsql citus constraints')
 Results = namedtuple('Results', 'dsn')
@@ -18,10 +17,9 @@ class Setup():
             factor = conf.getint('scale', 'factor'),
             children = conf.getint('scale', 'children'))
 
-        self.load  = Load(
-            phase1 = conf.get('load', 'phase1'),
-            phase2 = conf.get('load', 'phase2'),
-            phase3 = conf.get('load', 'phase3'))
+        self.load = {}
+        for option in conf.options('load'):
+            self.load[option] = conf.get('load', option)
 
         self.stream = Stream(
             queries = conf.get('stream', 'queries'),

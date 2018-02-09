@@ -7,7 +7,7 @@ AURORA_LOADER = aws.out/aurora.loader.json
 
 # Parameters that you can set from the outside.
 CPU      ?= 16
-DURATION ?= 600
+DURATION ?= 120
 S        ?= 2
 STREAM   ?= '1 3 6 12'
 
@@ -25,7 +25,7 @@ ssh   = ssh -l ec2-user $(shell $(WAIT) $(1))
 rmake = $(call ssh,$(1)) "cd tpch && /usr/bin/time -p make DSN=$(shell $(DSN) $(2)) $(4) -f Makefile.loader $(3)"
 tpch  = $(call ssh,$(1)) "cd tpch && DSN=$(shell $(DSN) $(2)) ./tpch.py $(3)"
 
-all: prepare init ;
+all: prepare ;
 
 tpch: tpch-rds tpch-aurora ;
 
@@ -41,9 +41,11 @@ loaders: loader-rds loader-aurora ;
 
 loader-rds: $(RDS_LOADER)
 	$(call rsync,$(RDS_LOADER))
+	$(call rmake,$(RDS_LOADER),$(RDS),os repo)
 
 loader-aurora: $(AURORA_LOADER)
 	$(call rsync,$(AURORA_LOADER))
+	$(call rmake,$(AURORA_LOADER),$(AURORA),os repo)
 
 rds: $(RDS) ;
 aurora: $(AURORA) ;
@@ -56,17 +58,16 @@ terminate-loaders:
 	$(DRIVER) ec2 terminate --json $(RDS_LOADER)
 	$(DRIVER) ec2 terminate --json $(AURORA_LOADER)
 
-init: init-rds init-aurora ;
 load: load-rds load-aurora ;
 stream: stream-rds stream-aurora ;
 drop: drop-rds drop-aurora ;
 
-init-rds: loader-rds
-	$(call rmake,$(RDS_LOADER),$(RDS),os repo)
-	$(call rmake,$(RDS_LOADER),$(RDS),init)
+load-phase-1: load-rds-phase-1 load-aurora-phase-1 ;
+load-phase-2: load-rds-phase-2 load-aurora-phase-2 ;
+load-phase-3: load-rds-phase-3 load-aurora-phase-3 ;
 
 load-rds-phase-1: loader-rds
-	$(call tpch,$(RDS_LOADER),$(RDS),load rds 2..10 $(CPU))
+	$(call tpch,$(RDS_LOADER),$(RDS),load rds 1..10 $(CPU))
 
 load-rds-phase-2: loader-rds
 	$(call tpch,$(RDS_LOADER),$(RDS),load rds 11..30 $(CPU))
@@ -86,12 +87,8 @@ psql-rds:
 drop-rds:
 	$(call rmake,$(RDS_LOADER),$(RDS),drop)
 
-init-aurora:
-	$(call rmake,$(AURORA_LOADER),$(AURORA),os repo)
-	$(call rmake,$(AURORA_LOADER),$(AURORA),init)
-
 load-aurora-phase-1: loader-aurora
-	$(call tpch,$(AURORA_LOADER),$(AURORA),load aurora 2..10 $(CPU))
+	$(call tpch,$(AURORA_LOADER),$(AURORA),load aurora 1..10 $(CPU))
 
 load-aurora-phase-2: loader-aurora
 	$(call tpch,$(AURORA_LOADER),$(AURORA),load aurora 11..30 $(CPU))
@@ -107,9 +104,6 @@ shell-aurora:
 
 psql-aurora:
 	$(call ssh,$(AURORA_LOADER)) "psql -d $(shell $(DSN) $(AURORA))"
-
-drop-aurora:
-	$(call rmake,$(AURORA_LOADER),$(AURORA),drop)
 
 cardinalities:
 	$(call rmake,$(RDS_LOADER),$(RDS),cardinalities)
@@ -143,10 +137,10 @@ aws.out/%.aurora.json:
 	$(DRIVER) aurora create --json $@
 
 .PHONY: loaders list-zones list-amis status
-.PHONY: init init-rds init-aurora load
 .PHONY: shell-rds shell-aurora psql-rds psql-aurora
 .PHONY: stream-rds stream-aurora drop drop-rds drop-aurora
 .PHONY: terminate terminate-loaders
 .PHONY: tpch tpch-rds tcph-aurora
+.PHONY: load load-phase-1 load-phase-2 load-phase-3
 .PHONY: load-rds-phase-1 load-rds-phase-2 load-rds-phase-3
 .PHONY: load-aurora-phase-1 load-aurora-phase-2 load-aurora-phase-3

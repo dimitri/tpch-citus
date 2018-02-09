@@ -1,10 +1,12 @@
 import time
 from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
 
-def execute_on_one_core_per_arglist(name, cpu, fun, arglist):
+def execute_on_one_core_per_arglist(name, cpu, fun, arglist, *args,
+                                    verbose=False):
     """Run FUN as many times as len(ARGLIST) and with an entry from ARGLIST each
        time, concurrently, on as many as CPU cores.
 
+    FUN is called as if by: [fun(x, *args) for x in arglist].
     """
     pool = ProcessPoolExecutor(cpu)
     results = []
@@ -15,7 +17,7 @@ def execute_on_one_core_per_arglist(name, cpu, fun, arglist):
 
     for arg in arglist:
         i = print_dots(i)
-        futures.append(pool.submit(fun, arg))
+        futures.append(pool.submit(fun, arg, *args))
 
     i = print_dots(i, char = '§')
     done, not_done = wait(futures)
@@ -23,13 +25,16 @@ def execute_on_one_core_per_arglist(name, cpu, fun, arglist):
     for future in done:
         results.append(future.result())
 
-    print("¶")
+    if verbose:
+        print("¶")
+
     pool.shutdown(wait=False)
     end = time.monotonic()
     return results, end-start
 
 
-def repeat_for_a_while_on_many_cores(name, cpu, duration, fun, *args):
+def repeat_for_a_while_on_many_cores(name, cpu, duration, fun, *args,
+                                     verbose=False):
     """Run FUN with KWARGS as many times as possible for DURATION seconds, using
     as much as CPU cores in parallel. Return a list of results and the time
     we actually took in seconds.
@@ -78,7 +83,8 @@ def repeat_for_a_while_on_many_cores(name, cpu, duration, fun, *args):
         results.append(future.result())
 
     # and we're done!
-    print("¶")
+    if verbose:
+        print("¶")
     pool.shutdown(wait=False)
     end = time.monotonic()
 

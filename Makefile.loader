@@ -2,14 +2,11 @@ REPOSITORY = https://github.com/citusdata/test-automation
 BRANCH     = tpch-pg
 DBNAME     = tpch
 
-# we target Scale Factor of 30TB, that's 30000
-# and we go by chunks of 1GB for first testing
-# we plan to then switch to 100GB chunks, using C = 300
-# SF = 30000
-# C  = 300
-SF = 10
-C  = 100
-S ?= 1
+# Those are meant to be filled-in by the tpch.py driver
+# It's still possible to hack them around directly, of course
+SF ?= 10
+C  ?= 100
+S  ?= 1
 
 DSN ?= postgresql://tpch@localhost:5432/TPCH
 
@@ -37,13 +34,15 @@ repo:
 	cd $(TEST) && git checkout tpch-pg
 	cd $(TPCH)/src && make
 
-init:
-	# init is -S 1 by definition, always
+schema:
 	psql -a -d $(DSN) -f $(SCHEMA)
-	cd $(TPCH)/src && $(DBGEN) -s $(SF) -C $(C) -S 1 -D -n $(DSN)
-	psql -a -d $(DSN) -f loader/tpch-pkeys.sql
-	psql -a -d $(DSN) -f loader/tpch-index.sql
-	psql -a -d $(DSN) -f loader/tpch-alter.sql
+
+constraints:
+	psql -a -d $(DSN) -f schema/tpch-pkeys.sql
+	psql -a -d $(DSN) -f schema/tpch-index.sql
+	psql -a -d $(DSN) -f schema/tpch-alter.sql
+
+vacuum:
 	psql -a -d $(DSN) -c '\timing' -c 'vacuum analyze;'
 
 load:

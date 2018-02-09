@@ -1,3 +1,28 @@
+import shlex
+import subprocess
+
+def run_command(command, verbose=True):
+    "Run a command in a subprocess"
+    cmd = shlex.split(command)
+
+    with subprocess.Popen (cmd, stdout=subprocess.PIPE) as p:
+        return p.stdout.readlines()
+
+
+def parse_psql_timings(queries):
+    "Parse psql Time: output when \timing is used."
+    timings = {}
+    qstream = queries.split(" ")
+    i = 0
+    for line in output:
+        if line and line.startswith(b'Time: '):
+            timing = line[len(b'Time: '):-1]
+            timings[qstream[i]] = timing
+            i = i+1
+
+    return timings
+
+
 def expand_step_range(steps):
     """Explode the notation 2..10 into the Python list
 

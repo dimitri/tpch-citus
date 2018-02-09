@@ -4,20 +4,20 @@ DBNAME     = tpch
 
 # Those are meant to be filled-in by the tpch.py driver
 # It's still possible to hack them around directly, of course
-SF ?= 10
-C  ?= 100
-S  ?= 1
+SF      ?= 10
+C       ?= 100
+S       ?= 1
+DSN     ?= postgresql://tpch@localhost:5432/TPCH
+STREAM  ?= 1
 
-DSN ?= postgresql://tpch@localhost:5432/TPCH
-
-TEST     = /home/ec2-user/test-automation/
-TPCH     = $(TEST)/tpch_2_13_0
-SCHEMA   = $(TPCH)/tpch_create_tables_pg.ddl
-CARDVIEW = $(TPCH)/cardinalities.sql
-QUERIES  = ..//queries/
+TPCH_PG  = ./tpch-pg/
+TPCH_SRC = ./tpch-pg/src/
+CARDVIEW = ./schema/cardinalities.sql
+QUERIES  = ../queries/
 DBGEN    = ./dbgen
 QGEN     = DSS_QUERY=$(QUERIES) ./qgen
-STREAM  ?= 1
+PSQL     = psql -X -a -d $(DSN)
+TABLES   = nation, region, part, supplier, partsupp, customer, orders, lineitem
 
 all: os repo ;
 
@@ -28,38 +28,36 @@ os:
 	sudo yum -y install python36 python36-pip
 	sudo pip-3.6 install psycopg2
 
-repo:
-	rm -rf $(TEST)
-	git clone https://github.com/citusdata/test-automation $(TEST)
-	cd $(TEST) && git checkout tpch-pg
-	cd $(TPCH)/src && make
+tools:
+	make -C $(TPCH_SRC) clean all
 
 schema:
-	psql -a -d $(DSN) -f $(SCHEMA)
+	$(PSQL) -f $(SCHEMA)
 
 constraints:
-	psql -a -d $(DSN) -f schema/tpch-pkeys.sql
-	psql -a -d $(DSN) -f schema/tpch-index.sql
-	psql -a -d $(DSN) -f schema/tpch-alter.sql
+	$(PSQL) -f schema/tpch-pkeys.sql
+	$(PSQL) -f schema/tpch-index.sql
+	$(PSQL) -f schema/tpch-alter.sql
 
 vacuum:
-	psql -a -d $(DSN) -c '\timing' -c 'vacuum analyze;'
+	$(PSQL) -c '\timing' -c 'vacuum analyze;'
 
 load:
 	# load the next Step of data
-	cd $(TPCH)/src && $(DBGEN) -s $(SF) -C $(C) -S $(S) -D -n $(DSN)
-	psql -a -d $(DSN) -c '\timing' -c 'vacuum analyze;'
+	cd $(TPCH_SRC) && $(DBGEN) -s $(SF) -C $(C) -S $(S) -D -n $(DSN)
+	$(PSQL) -c '\timing' -c 'vacuum analyze;'
 
 cardinalities:
-	psql -d $(DSN) -f $(CARDVIEW) -c '\timing' -c 'TABLE cardinalities;'
+	$(PSQL) -f $(CARDVIEW) -c '\timing' -c 'TABLE cardinalities;'
 
 stream:
-	cd $(TPCH)/src && $(QGEN) $(STREAM) | psql -o /dev/null -d $(DSN) -c '\timing' -f -
+	cd $(TPCH_SRC) && $(QGEN) $(STREAM)             \
+	| $(PSQL) -o /dev/null -c '\timing' -f -
 
 refresh:
-	cd $(TPCH)/src && $(DBGEN) -s $(SF) -U $(C) -S $(S) -D -n $(DSN) -v
+	cd $(TPCH_SRC) && $(DBGEN) -s $(SF) -U $(C) -S $(S) -D -n $(DSN) -v
 
 drop:
-	psql -a -d $(DSN) -c 'drop table nation, region, part, supplier, partsupp, customer, orders, lineitem cascade;'
+	$(PSQL) -c 'drop table $(TABLES) cascade;'
 
 .PHONY: dbgen repo os init load stream refresh drop

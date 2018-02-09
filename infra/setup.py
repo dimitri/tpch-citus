@@ -14,6 +14,7 @@ Aurora_conf = namedtuple('Aurora', 'name iclass stype')
 PgSQL_conf  = namedtuple('PgSQL', 'dsn')
 Citus_conf  = namedtuple('Citus', 'dsn')
 
+
 class Setup():
     def __init__(self, filename):
         conf = configparser.ConfigParser()

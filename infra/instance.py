@@ -9,6 +9,7 @@ from collections import namedtuple
 
 from . import utils
 
+
 class Instance():
     def __init__(self, conf, conn, filename = None):
         self.conf = conf
@@ -69,7 +70,8 @@ class Instance():
 
     def status(self):
         if hasattr(self, "id"):
-            self._status = self.conn.describe_instance_status(InstanceIds = [self.id])
+            self._status = self.conn.describe_instance_status(
+                InstanceIds = [self.id])
         else:
             return "unknown"
 
@@ -80,8 +82,9 @@ class Instance():
 
     def public_ip(self):
         filter = {'Name': 'attachment.instance-id', 'Values': [self.id]}
-        self.interfaces = self.conn.describe_network_interfaces(Filters = [filter])
-        return self.interfaces["NetworkInterfaces"][0]["Association"]["PublicIp"]
+        nic = self.conn.describe_network_interfaces(Filters = [filter])
+        self.interfaces = nic
+        return nic["NetworkInterfaces"][0]["Association"]["PublicIp"]
 
     def wait_for_public_ip(self):
         status = self.status()

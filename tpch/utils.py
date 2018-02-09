@@ -1,6 +1,7 @@
 import shlex
 import subprocess
 
+
 def run_command(command, verbose=False):
     "Run a command in a subprocess"
     cmd = shlex.split(command)
@@ -8,7 +9,7 @@ def run_command(command, verbose=False):
     if verbose:
         print(cmd)
 
-    with subprocess.Popen (cmd, stdout=subprocess.PIPE) as p:
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE) as p:
         return p.stdout.readlines()
 
 
@@ -21,7 +22,7 @@ def parse_psql_timings(queries, output):
         if line and line.startswith(b'Time: '):
             timing = line[len(b'Time: '):-1]
             timings[qstream[i]] = timing
-            i = i+1
+            i = i + 1
 
     return timings
 
@@ -40,7 +41,7 @@ def expand_step_range(steps):
         elif len(step_range) == 2:
             start, end = int(step_range[0]), int(step_range[1])
 
-            return [start+x for x in range(end-start+1)]
+            return [start + x for x in range(end - start + 1)]
 
         else:
             return []

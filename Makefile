@@ -154,10 +154,14 @@ aws.out/%.rds.json:
 aws.out/%.aurora.json:
 	$(INFRA) aurora create --json $@
 
+pep8: pycodestyle ;
+pycodestyle:
+	pycodestyle --ignore E251,E221 *py tpch/*py infra/*py
+
 .PHONY: infra rds aurora loaders status
 .PHONY: stream stream-rds stream-aurora stream-pgsql stream-citus
 .PHONY: load load-rds load-aurora load-pgsql load-citus
 .PHONY: shell-rds shell-aurora psql-rds psql-aurora
 .PHONY: stream-rds stream-aurora drop drop-rds drop-aurora
 .PHONY: terminate terminate-loaders
-.PHONY: list-zones list-amis
+.PHONY: list-zones list-amis pep8 pycodestyle

@@ -9,6 +9,7 @@ from collections import namedtuple
 
 from . import utils
 
+
 class RDS():
     def __init__(self, conf, conn, filename = None):
         self.conf = conf
@@ -54,7 +55,8 @@ class RDS():
 
     def describe(self):
         if self.id:
-            return self.conn.describe_db_instances(DBInstanceIdentifier = self.id)
+            return self.conn.describe_db_instances(
+                DBInstanceIdentifier = self.id)
 
     def status(self):
         if self.id:

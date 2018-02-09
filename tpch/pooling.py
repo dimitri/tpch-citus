@@ -1,6 +1,7 @@
 import time
 from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
 
+
 def execute_on_one_core_per_arglist(name, cpu, fun, arglist, *args,
                                     verbose=False):
     """Run FUN as many times as len(ARGLIST) and with an entry from ARGLIST each
@@ -19,7 +20,7 @@ def execute_on_one_core_per_arglist(name, cpu, fun, arglist, *args,
         i = print_dots(i)
         futures.append(pool.submit(fun, arg, *args))
 
-    i = print_dots(i, char = '§')
+    i = print_dots(i, char='§')
     done, not_done = wait(futures)
 
     for future in done:
@@ -30,7 +31,7 @@ def execute_on_one_core_per_arglist(name, cpu, fun, arglist, *args,
 
     pool.shutdown(wait=False)
     end = time.monotonic()
-    return results, end-start
+    return results, end - start
 
 
 def repeat_for_a_while_on_many_cores(name, cpu, duration, fun, *args,
@@ -41,7 +42,7 @@ def repeat_for_a_while_on_many_cores(name, cpu, duration, fun, *args,
 
     """
     pool = ProcessPoolExecutor(cpu)
-    futures   = []
+    futures = []
     seen_done = []                # wait() keeps returning same done futures
 
     i = 0
@@ -72,7 +73,7 @@ def repeat_for_a_while_on_many_cores(name, cpu, duration, fun, *args,
             futures.append(pool.submit(fun, *args))
 
     # signal we're done with submitting new tasks, shutdown time
-    i = print_dots(i, char = '§')
+    i = print_dots(i, char='§')
 
     # now we're timed out, so retrieve all remaining results
     done, not_done = wait(futures)
@@ -88,11 +89,12 @@ def repeat_for_a_while_on_many_cores(name, cpu, duration, fun, *args,
     pool.shutdown(wait=False)
     end = time.monotonic()
 
-    return results, end-start
+    return results, end - start
 
-def print_dots(i, per_line = 60, char = '.', verbose = False):
+
+def print_dots(i, per_line=60, char='.', verbose=False):
     if verbose:
-        i = i+1
+        i = i + 1
         if i % 60 == 0:
             print(char)
         else:

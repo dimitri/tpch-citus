@@ -1,9 +1,10 @@
-SCHEMA        = 'make SCHEMA=%s -f Makefile.loader schema'
-CARDINALITIES = './schema/cardinalities.sql'
-
 import time
 from . import utils, pooling
 from .load import Load
+
+SCHEMA        = 'make SCHEMA=%s -f Makefile.loader schema'
+CARDINALITIES = './schema/cardinalities.sql'
+
 
 def initdb(step, scale_factor, children):
     # the LOAD phase doesn't bring any particulary useful information on the
@@ -13,7 +14,7 @@ def initdb(step, scale_factor, children):
 
 
 class InitDB():
-    def __init__(self, conf, kind = 'pgsql', phase = 'initdb'):
+    def __init__(self, conf, kind='pgsql', phase='initdb'):
         self.conf = conf
         self.load = Load(conf, phase)
         self.kind = kind
@@ -60,10 +61,9 @@ class InitDB():
             if debug:
                 print(out)
 
-        end  = time.monotonic()
+        end = time.monotonic()
         secs = end - start
 
         print("%s: imported %d initial steps in %gs, using %d CPU" %
               (name, len(self.steps), secs, self.conf.scale.cpu))
         return
-

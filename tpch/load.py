@@ -1,8 +1,8 @@
-LOAD   = 'make -f Makefile.loader SF=%s C=%s S=%s load'
-VACUUM = 'make -f Makefile.loader vacuum'
-
 import time
 from . import utils, pooling
+
+LOAD   = 'make -f Makefile.loader SF=%s C=%s S=%s load'
+VACUUM = 'make -f Makefile.loader vacuum'
 
 
 def load(step, scale_factor, children):
@@ -44,4 +44,3 @@ class Load():
         print("%s: loaded %d steps of data in %gs, using %d CPU" %
               (name, len(self.steps), secs, cpu))
         return
-

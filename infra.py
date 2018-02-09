@@ -15,9 +15,11 @@ from infra.aurora import Aurora
 
 import click
 
+
 @click.group()
 def ec2():
     pass
+
 
 @ec2.command()
 @click.option('--json',
@@ -43,10 +45,12 @@ def status(ctx, id, json):
     else:
         click.echo('Please provide either --json or --id')
 
+
 @ec2.command()
 def list():
     ec2 = boto3.resource('ec2')
-    print("%20s %25s %15s %15s" % ("Instance Id", "KeyName", "Status", "Public IP"))
+    print("%20s %25s %15s %15s" % ("Instance Id", "KeyName",
+                                   "Status", "Public IP"))
     print("%20s %25s %15s %15s" % ("-" * 20, "-" * 25, "-" * 10, "-" * 15))
     for instance in ec2.instances.all():
         print("%20s %25s %15s %15s" % (instance.id,
@@ -54,6 +58,7 @@ def list():
                                        instance.state['Name'],
                                        instance.public_ip_address))
     print()
+
 
 @ec2.command()
 @click.option('--json',
@@ -142,10 +147,10 @@ def run(ctx, json):
     click.echo(instance.run())
 
 
-
 @click.group()
 def rds():
     pass
+
 
 @rds.command()
 def list():
@@ -153,7 +158,8 @@ def list():
     rdslist = client.describe_db_instances()
 
     if 'DBInstances' in rdslist:
-        print("%20s %20s %20s %10s" % ("Instance Id", "Instance Class", "Engine", "Status"))
+        print("%20s %20s %20s %10s" % ("Instance Id", "Instance Class",
+                                       "Engine", "Status"))
         print("%20s %20s %20s %10s" % ("-" * 20, "-" * 20, "-" * 20, "-" * 10))
         for instance in rdslist['DBInstances']:
             print("%20s %20s %20s %10s" % (instance['DBInstanceIdentifier'],
@@ -161,6 +167,7 @@ def list():
                                            instance['Engine'],
                                            instance['DBInstanceStatus']))
     print()
+
 
 @rds.command()
 @click.option('--json',
@@ -174,6 +181,7 @@ def create(ctx, json):
     rds = RDS(conf, conn, json)
     click.echo(rds.create())
 
+
 @rds.command()
 @click.option('--json',
               required=True,
@@ -185,6 +193,7 @@ def describe(ctx, json):
     conn = boto3.client('rds', conf.region)
     rds = RDS(conf, conn, json)
     click.echo(rds.describe())
+
 
 @rds.command()
 @click.option('--json',
@@ -198,6 +207,7 @@ def status(ctx, json):
     rds = RDS(conf, conn, json)
     click.echo(rds.status())
 
+
 @rds.command()
 @click.option('--json',
               required=True,
@@ -209,6 +219,7 @@ def dsn(ctx, json):
     conn = boto3.client('rds', conf.region)
     rds = RDS(conf, conn, json)
     click.echo(rds.dsn())
+
 
 @rds.command()
 @click.option('--json',
@@ -222,6 +233,7 @@ def wait(ctx, json):
     rds = RDS(conf, conn, json)
     click.echo(rds.wait_for_dsn())
 
+
 @rds.command()
 @click.option('--json',
               required=True,
@@ -233,6 +245,7 @@ def stop(ctx, json):
     conn = boto3.client('rds', conf.region)
     rds = RDS(conf, conn, json)
     click.echo(rds.stop())
+
 
 @rds.command()
 @click.option('--json',
@@ -259,9 +272,11 @@ def delete(ctx, json):
     rds = RDS(conf, conn, json)
     click.echo(rds.delete())
 
+
 @click.group()
 def aurora():
     pass
+
 
 @aurora.command()
 def list():
@@ -277,17 +292,20 @@ def list():
                                       cluster['Engine']))
     print()
 
+
 @aurora.command()
 @click.option('--json',
               required=True,
               type=click.Path(),
-              help='Filename where to store AWS JSON output for an Aurora instance.')
+              help='Filename where to store AWS JSON output '
+              'for an Aurora instance.')
 @click.pass_context
 def create(ctx, json):
     conf = ctx.obj['CONFIG']
     conn = boto3.client('rds', conf.region)
     aurora = Aurora(conf, conn, json)
     click.echo(aurora.create())
+
 
 @aurora.command()
 @click.option('--json',
@@ -300,6 +318,7 @@ def dsn(ctx, json):
     conn = boto3.client('rds', conf.region)
     aurora = Aurora(conf, conn, json)
     click.echo(aurora.dsn())
+
 
 @aurora.command()
 @click.option('--json',
@@ -318,6 +337,7 @@ def delete(ctx, json):
 def pgsql():
     pass
 
+
 @pgsql.command()
 @click.pass_context
 def dsn(ctx):
@@ -328,6 +348,7 @@ def dsn(ctx):
 @click.group()
 def citus():
     pass
+
 
 @citus.command()
 @click.pass_context
@@ -342,8 +363,9 @@ def dsn(ctx):
               type=click.Path(exists=True),
               help='configuration file [.ini]')
 @click.pass_context
-def cli(ctx,config):
+def cli(ctx, config):
     ctx.obj['CONFIG'] = Setup(config)
+
 
 cli.add_command(ec2)
 cli.add_command(rds)

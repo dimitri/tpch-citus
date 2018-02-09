@@ -1,14 +1,5 @@
 #! /usr/bin/env python3
 
-# TPC-H driver
-#
-# Used in coordination the Makefile.loader in this directory to generate a
-# TPC-H benchmark, from scratch, on an AWS infrastructure. The goal is to
-# compare Core PostgreSQL, Citus Data Cloud, AWS RDS and AWS Aurora
-# offerings when using a custom-made TPC-H work load.
-
-CONF = "tpch.ini"
-
 import sys
 from tpch import setup
 from tpch.load import Load
@@ -17,9 +8,13 @@ from tpch.initdb import InitDB
 
 import click
 
+CONF = "tpch.ini"
+
+
 @click.group()
 def cli():
     pass
+
 
 @cli.command()
 @click.option("--ini", default=CONF)

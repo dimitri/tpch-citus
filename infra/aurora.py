@@ -10,6 +10,7 @@ from collections import namedtuple
 from . import rds
 from . import utils
 
+
 class Cluster():
 
     def __init__(self, conf, conn, filename):
@@ -58,7 +59,8 @@ class Cluster():
 
     def describe(self):
         if self.id:
-            return self.conn.describe_db_clusters(DBClusterIdentifier = self.id)
+            return self.conn.describe_db_clusters(
+                DBClusterIdentifier = self.id)
 
     def endpoint(self):
         desc = self.describe()
@@ -132,4 +134,3 @@ class Aurora(rds.RDS):
         cluster_status = self.cluster.delete()
 
         return cluster_status, instance_ret['DBInstance']['DBInstanceStatus']
-

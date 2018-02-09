@@ -39,5 +39,3 @@ class Volume():
 
         self.id = self.data["Instances"][0]["InstanceId"]
         return self.data
-
-

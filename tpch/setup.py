@@ -8,6 +8,7 @@ Stream  = namedtuple('Stream', 'queries duration')
 Schema  = namedtuple('Schema', 'tables constraints')
 Results = namedtuple('Results', 'dsn')
 
+
 class Setup():
     def __init__(self, filename):
         "Read our configuration file"
@@ -21,7 +22,8 @@ class Setup():
 
         self.load = {}
         for option in conf.options('load'):
-            self.load[option] = utils.expand_step_range(conf.get('load', option))
+            step_range = conf.get('load', option)
+            self.load[option] = utils.expand_step_range(step_range)
 
         self.stream = Stream(
             queries = conf.get('stream', 'queries'),

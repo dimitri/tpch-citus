@@ -1,5 +1,4 @@
 SCHEMA        = 'make SCHEMA=%s -f Makefile.loader schema'
-VACUUM        = 'make -f Makefile.loader vacuum'
 CARDINALITIES = './schema/cardinalities.sql'
 
 import time
@@ -16,17 +15,17 @@ def initdb(step, scale_factor, children):
 class InitDB():
     def __init__(self, conf, kind = 'pgsql', phase = 'initdb'):
         self.conf = conf
-        self.load = Load(conf)
+        self.load = Load(conf, phase)
         self.kind = kind
 
         if kind == 'pgsql':
-            self.schema = self.conf.schema.pgsql
+            self.tables = self.conf.pgsql.tables
+            self.constraints = self.conf.pgsql.constraints
         elif kind == 'citus':
-            self.schema = self.conf.schema.citus
+            self.tables = self.conf.citus.tables
+            self.constraints = self.conf.citus.constraints
         else:
-            # that way, a filename might be given...
-            # might be helpful, but it's not documented
-            self.schema = kind
+            raise ValueError
 
         self.phase = phase
         self.steps = self.conf.load[self.phase]
@@ -41,7 +40,7 @@ class InitDB():
         # then install the extra constraints, and finally VACUUM ANALYZE
         print("%s: create initial schema, %s variant" % (name, self.kind))
 
-        out = utils.run_command(SCHEMA % (self.schema))
+        out = utils.run_command(SCHEMA % (self.tables))
         if debug:
             print(out)
 
@@ -51,19 +50,15 @@ class InitDB():
             print(out)
 
         # self.load.run() is verbose already
-        self.load.run(name, self.phase)
+        # It loads the data and does the VACUUM ANALYZE on each table
+        self.load.run(name)
 
-        for sqlfile in self.conf.schema.constraints:
+        for sqlfile in self.constraints:
             print("%s: install constraints from '%s'" % (name, sqlfile))
             out = utils.run_command(SCHEMA % (sqlfile))
 
             if debug:
                 print(out)
-
-        print("%s: vacuum analyze" % (name))
-        out = utils.run_command(VACUUM)
-        if debug:
-            print(out)
 
         end  = time.monotonic()
         secs = end - start

@@ -17,6 +17,7 @@ DBGEN    = ./dbgen
 QGEN     = DSS_QUERY=$(QUERIES) ./qgen
 PSQL     = psql -X -a -d $(DSN)
 TABLES   = nation, region, part, supplier, partsupp, customer, orders, lineitem
+VTABLES  = nation region part supplier partsupp customer orders lineitem
 
 all: os repo ;
 
@@ -39,12 +40,13 @@ constraints:
 	$(PSQL) -f schema/tpch-alter.sql
 
 vacuum:
-	$(PSQL) -c '\timing' -c 'vacuum analyze;'
+	for t in $(VTABLES); do                                \
+		$(PSQL) -c '\timing' -c "vacuum analyze $$t;"; \
+	done
 
 load:
 	# load the next Step of data
 	cd $(TPCH_SRC) && $(DBGEN) -s $(SF) -C $(C) -S $(S) -D -n $(DSN)
-	$(PSQL) -c '\timing' -c 'vacuum analyze;'
 
 cardinalities:
 	$(PSQL) -c '\timing' -c 'TABLE cardinalities;'

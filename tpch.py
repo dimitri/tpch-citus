@@ -23,23 +23,18 @@ def cli():
 
 @cli.command()
 @click.option("--ini", default=CONF)
-@click.argument('name')
-@click.argument('kind', default='pgsql')
-@click.argument('phase', default='initdb')
-def initdb(name, kind, phase, ini):
-    conf = setup.Setup(ini)
-    cmd = InitDB(conf, kind=kind, phase=phase)
-    cmd.run(name)
-
-
-@cli.command()
-@click.option("--ini", default=CONF)
+@click.option("--kind", default='pgsql')
 @click.argument('name')
 @click.argument('phase')
-def load(name, phase, ini):
+def load(name, phase, ini, kind):
     conf = setup.Setup(ini)
-    cmd = Load(conf)
-    cmd.run(name, phase)
+
+    if phase == 'initdb':
+        cmd = InitDB(conf, kind=kind, phase=phase)
+    else:
+        cmd = Load(conf, phase)
+
+    cmd.run(name)
 
 
 @cli.command()

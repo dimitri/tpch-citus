@@ -5,7 +5,7 @@ from . import utils
 
 Scale   = namedtuple('Scale', 'cpu factor children')
 Stream  = namedtuple('Stream', 'queries duration')
-Schema  = namedtuple('Schema', 'pgsql citus constraints')
+Schema  = namedtuple('Schema', 'tables constraints')
 Results = namedtuple('Results', 'dsn')
 
 class Setup():
@@ -27,10 +27,13 @@ class Setup():
             queries = conf.get('stream', 'queries'),
             duration = conf.getint('stream', 'duration'))
 
-        self.schema = Schema(
-            pgsql = conf.get('schema', 'pgsql'),
-            citus = conf.get('schema', 'citus'),
-            constraints = conf.get('schema', 'constraints').split(' '))
+        self.pgsql = Schema(
+            tables = conf.get('pgsql', 'tables'),
+            constraints = conf.get('pgsql', 'constraints').split(' '))
+
+        self.citus = Schema(
+            tables = conf.get('citus', 'tables'),
+            constraints = conf.get('citus', 'constraints').split(' '))
 
         self.results = Results(dsn = conf.get('results', 'dsn'))
 

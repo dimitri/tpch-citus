@@ -315,6 +315,28 @@ def delete(ctx, json):
 
 
 @click.group()
+def pgsql():
+    pass
+
+@pgsql.command()
+@click.pass_context
+def dsn(ctx):
+    conf = ctx.obj['CONFIG']
+    click.echo(conf.pgsql.dsn)
+
+
+@click.group()
+def citus():
+    pass
+
+@citus.command()
+@click.pass_context
+def dsn(ctx):
+    conf = ctx.obj['CONFIG']
+    click.echo(conf.citus.dsn)
+
+
+@click.group()
 @click.option('--config',
               default='infra.ini',
               type=click.Path(exists=True),
@@ -326,6 +348,8 @@ def cli(ctx,config):
 cli.add_command(ec2)
 cli.add_command(rds)
 cli.add_command(aurora)
+cli.add_command(pgsql)
+cli.add_command(citus)
 
 if __name__ == '__main__':
     cli(obj={})

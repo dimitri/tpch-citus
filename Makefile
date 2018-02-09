@@ -8,6 +8,8 @@ AURORA_LOADER = aws.out/aurora.loader.json
 INFRA  = ./infra.py --config ./infra.ini
 WAIT   = $(INFRA) ec2 wait --json
 DSN    = $(INFRA) rds wait --json
+PGSQL  = $(shell $(INFRA) pgsql dsn)
+CITUS  = $(shell $(INFRA) citus dsn)
 RSYNC  = rsync -e "ssh -o StrictHostKeyChecking=no" -avz --exclude=.git
 
 #
@@ -18,17 +20,49 @@ ssh   = ssh -l ec2-user $(shell $(WAIT) $(1))
 rmake = $(call ssh,$(1)) "cd tpch && /usr/bin/time -p make DSN=$(shell $(DSN) $(2)) $(4) -f Makefile.loader $(3)"
 tpch  = $(call ssh,$(1)) "cd tpch && DSN=$(shell $(DSN) $(2)) ./tpch.py $(3)"
 
-all: prepare ;
+.SILENT: help
+help:
+	echo "TPC-H benchmark for PostgreSQL and Citus Data"
+	echo
+	echo "Use make to drive the benchmark, with the following targets:"
+	echo
+	echo "  help           this help message"
+	echo "  all            infra initdb stream"
+	echo "  infra          create AWS test infrastructure"
+	echo "  terminate      destroy AWS test infrastructure"
+	echo "  drop           drop TPC-H test tables"
+	echo
+	echo "  stream         stream-citus stream-pgsql stream-rds stream-aurora "
+	echo "  stream-citus   run TPC-H query STREAMs on Citus"
+	echo "  stream-pgsql   run TPC-H query STREAMs on PostgreSQL"
+	echo "  stream-rds     run TPC-H query STREAMs on RDS"
+	echo "  stream-aurora  run TPC-H query STREAMs on Aurora"
+	echo
+	echo "  load           load-citus load-pgsql load-rds load-aurora "
+	echo "  load-citus     run load for env. PHASE on Citus"
+	echo "  load-psql      run load for env. PHASE on PostgreSQL"
+	echo "  load-rds       run load for env. PHASE on RDS"
+	echo "  load-aurora    run load for env. PHASE on Aurora"
+	echo
+	echo "  cardinalities  run SELECT count(*) on all the tables"
 
-tpch: tpch-rds tpch-aurora ;
+all: infra initdb stream ;
 
-tpch-rds: loader-rds rds
+stream: stream-rds stream-aurora stream-pgsql stream-citus ;
+
+stream-rds: loader-rds rds
 	$(call tpch,$(RDS_LOADER),$(RDS),stream rds)
 
-tpch-aurora: loader-aurora aurora
+stream-aurora: loader-aurora aurora
 	$(call tpch,$(AURORA_LOADER),$(AURORA),stream aurora)
 
-prepare: rds aurora loaders ;
+stream-pgsql:
+	DSN=$(PGSQL) tpch.py stream pgsql
+
+stream-citus:
+	DSN=$(CITUS) tpch.py stream citus
+
+infra: rds aurora loaders ;
 
 loaders: loader-rds loader-aurora ;
 
@@ -51,9 +85,8 @@ terminate-loaders:
 	$(INFRA) ec2 terminate --json $(RDS_LOADER)
 	$(INFRA) ec2 terminate --json $(AURORA_LOADER)
 
-load: load-rds load-aurora ;
-stream: stream-rds stream-aurora ;
-drop: drop-rds drop-aurora ;
+load: load-rds load-aurora load-pgsql load-citus ;
+drop: drop-rds drop-aurora drop-pgsql drop-citus ;
 
 load-rds:
 	$(call tpch,$(RDS_LOADER),$(RDS),load rds $(PHASE))
@@ -61,8 +94,11 @@ load-rds:
 load-aurora:
 	$(call tpch,$(AURORA_LOADER),$(AURORA),load aurora $(PHASE))
 
-stream-rds:
-	$(call rmake,$(RDS_LOADER),$(RDS),stream,STREAM=$(STREAM))
+load-pgsql:
+	DSN=$(PGSQL) tpch.py load pgsql $(PHASE)
+
+load-citus:
+	DSN=$(CITUS) tpch.py load --kind citus citus $(PHASE)
 
 shell-rds:
 	$(call ssh,$(RDS_LOADER))
@@ -73,8 +109,11 @@ psql-rds:
 drop-rds:
 	$(call rmake,$(RDS_LOADER),$(RDS),drop)
 
-stream-aurora:
-	$(call rmake,$(AURORA_LOADER),$(AURORA),stream,STREAM=$(STREAM))
+drop-pgsql:
+	$(MAKE) DSN=$(PGSQL) -f Makefile.loader drop
+
+drop-citus:
+	$(MAKE) DSN=$(CITUS) -f Makefile.loader drop
 
 shell-aurora:
 	$(call ssh,$(AURORA_LOADER))
@@ -85,6 +124,8 @@ psql-aurora:
 cardinalities:
 	$(call rmake,$(RDS_LOADER),$(RDS),cardinalities)
 	$(call rmake,$(AURORA_LOADER),$(AURORA),cardinalities)
+	DSN=$(PGSQL) $(MAKE) -f Makefile.loader cardinalities
+	DSN=$(CITUS) $(MAKE) -f Makefile.loader cardinalities
 
 status:
 	$(INFRA) ec2 list
@@ -113,11 +154,10 @@ aws.out/%.rds.json:
 aws.out/%.aurora.json:
 	$(INFRA) aurora create --json $@
 
-.PHONY: loaders list-zones list-amis status
+.PHONY: infra rds aurora loaders status
+.PHONY: stream stream-rds stream-aurora stream-pgsql stream-citus
+.PHONY: load load-rds load-aurora load-pgsql load-citus
 .PHONY: shell-rds shell-aurora psql-rds psql-aurora
 .PHONY: stream-rds stream-aurora drop drop-rds drop-aurora
 .PHONY: terminate terminate-loaders
-.PHONY: tpch tpch-rds tcph-aurora
-.PHONY: load load-phase-1 load-phase-2 load-phase-3
-.PHONY: load-rds-phase-1 load-rds-phase-2 load-rds-phase-3
-.PHONY: load-aurora-phase-1 load-aurora-phase-2 load-aurora-phase-3
+.PHONY: list-zones list-amis

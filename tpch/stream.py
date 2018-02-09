@@ -5,7 +5,7 @@ from . import utils, pooling
 
 def stream(queries):
     output = utils.run_command(STREAM % (queries))
-    return utils.parse_psql_timings(queries)
+    return utils.parse_psql_timings(queries, output)
 
 
 class Stream():

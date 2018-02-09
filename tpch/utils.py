@@ -9,7 +9,7 @@ def run_command(command, verbose=True):
         return p.stdout.readlines()
 
 
-def parse_psql_timings(queries):
+def parse_psql_timings(queries, output):
     "Parse psql Time: output when \timing is used."
     timings = {}
     qstream = queries.split(" ")

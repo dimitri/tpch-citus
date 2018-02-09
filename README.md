@@ -1,9 +1,9 @@
 # Citus TPC-H tests
 
-The idea is to compare Citus Data with other Cloud Based offering that are
-competitor, namely Amazon RDS and Amazon Aurora services. This repository
-contains a partial implementation of TPC-H with Direct Loading support for
-PostgreSQL and some scripting to orchestrate highly concurrent tests.
+The idea is to compare different PostgreSQL Cloud-based offerings. This
+repository contains a partial implementation of TPC-H with Direct Loading
+support for PostgreSQL and some scripting to orchestrate highly concurrent
+tests.
 
 ## Running the benchmarks
 
@@ -77,7 +77,7 @@ The _initdb_ phase consists of the following actions:
   5. vacuum analyze the resulting database
 
 It is possible to select a schema variant thanks to the `--kind` option on
-the `tpch.py load` command, currently the `pgsql` (default) and `citus` one
+the `tpch.py load` command, currently the `pgsql` (default) and `citus` ones
 are provided.
 
 ### Loading Phase Specifications
@@ -125,7 +125,7 @@ done in a specified amount of time by the different systems in competition.
 
 ~~~ ini
 [stream]
-queries = 1 3 6 12
+queries = 1 4 6 12
 duration = 5
 ~~~
 

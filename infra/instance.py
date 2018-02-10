@@ -27,8 +27,8 @@ class Instance():
             return self.id
 
         out = self.conn.run_instances(
-            ImageId = self.conf.ami,
-            InstanceType = self.conf.itype,
+            ImageId = self.conf.loader.ami,
+            InstanceType = self.conf.loader.instance,
             KeyName = self.conf.keyname,
             Placement = {'AvailabilityZone':
                          self.conf.az},

@@ -5,9 +5,12 @@ RDS_LOADER  = aws.out/rds.loader.json
 AURORA        = aws.out/db.aurora.json
 AURORA_LOADER = aws.out/aurora.loader.json
 
+PGSQL_LOADER  = aws.out/pgsql.loader.json
+CITUS_LOADER  = aws.out/citus.loader.json
+
 INFRA  = ./infra.py --config ./infra.ini
 WAIT   = $(INFRA) ec2 wait --json
-DSN    = $(INFRA) rds wait --json
+DSN    = $(INFRA) dsn
 PGSQL  = $(shell $(INFRA) pgsql dsn)
 CITUS  = $(shell $(INFRA) citus dsn)
 RSYNC  = rsync -e "ssh -o StrictHostKeyChecking=no" -avz --exclude=.git
@@ -57,22 +60,30 @@ stream-aurora: loader-aurora aurora
 	$(call tpch,$(AURORA_LOADER),$(AURORA),stream aurora)
 
 stream-pgsql:
-	DSN=$(PGSQL) tpch.py stream pgsql
+	$(call tpch,$(PGSQL_LOADER),$(PGSQL),stream pgsql)
 
 stream-citus:
-	DSN=$(CITUS) tpch.py stream citus
+	$(call tpch,$(CITUS_LOADER),$(CITUS),stream pgsql)
 
 infra: rds aurora loaders ;
 
-loaders: loader-rds loader-aurora ;
+loaders: loader-rds loader-aurora loader-pgsql loader-citus ;
 
 loader-rds: $(RDS_LOADER)
 	$(call rsync,$(RDS_LOADER))
-	$(call rmake,$(RDS_LOADER),$(RDS),os repo)
+	$(call rmake,$(RDS_LOADER),$(RDS),os tools)
 
 loader-aurora: $(AURORA_LOADER)
 	$(call rsync,$(AURORA_LOADER))
-	$(call rmake,$(AURORA_LOADER),$(AURORA),os repo)
+	$(call rmake,$(AURORA_LOADER),$(AURORA),os tools)
+
+loader-pgsql: $(PGSQL_LOADER)
+	$(call rsync,$(PGSQL_LOADER))
+	$(call rmake,$(PGSQL_LOADER),$(PGSQL),os tools)
+
+loader-citus: $(CITUS_LOADER)
+	$(call rsync,$(CITUS_LOADER))
+	$(call rmake,$(CITUS_LOADER),$(CITUS),os tools)
 
 rds: $(RDS) ;
 aurora: $(AURORA) ;
@@ -84,6 +95,8 @@ terminate: terminate-loaders
 terminate-loaders:
 	$(INFRA) ec2 terminate --json $(RDS_LOADER)
 	$(INFRA) ec2 terminate --json $(AURORA_LOADER)
+	$(INFRA) ec2 terminate --json $(PGSQL_LOADER)
+	$(INFRA) ec2 terminate --json $(CITUS_LOADER)
 
 load: load-rds load-aurora load-pgsql load-citus ;
 drop: drop-rds drop-aurora drop-pgsql drop-citus ;
@@ -95,16 +108,10 @@ load-aurora:
 	$(call tpch,$(AURORA_LOADER),$(AURORA),load aurora $(PHASE))
 
 load-pgsql:
-	DSN=$(PGSQL) tpch.py load pgsql $(PHASE)
+	$(call tpch,$(PGSQL_LOADER),$(PGSQL),load pgsql $(PHASE))
 
 load-citus:
-	DSN=$(CITUS) tpch.py load --kind citus citus $(PHASE)
-
-shell-rds:
-	$(call ssh,$(RDS_LOADER))
-
-psql-rds:
-	$(call ssh,$(RDS_LOADER)) "psql -d $(shell $(DSN) $(RDS))"
+	$(call tpch,$(CITUS_LOADER),$(CITUS),load citus $(PHASE))
 
 drop-rds:
 	$(call rmake,$(RDS_LOADER),$(RDS),drop)
@@ -115,8 +122,20 @@ drop-pgsql:
 drop-citus:
 	$(MAKE) DSN=$(CITUS) -f Makefile.loader drop
 
+shell-rds:
+	$(call ssh,$(RDS_LOADER))
+
+shell-pgsql:
+	$(call ssh,$(PGSQL_LOADER))
+
+shell-citus:
+	$(call ssh,$(CITUS_LOADER))
+
 shell-aurora:
 	$(call ssh,$(AURORA_LOADER))
+
+psql-rds:
+	$(call ssh,$(RDS_LOADER)) "psql -d $(shell $(DSN) $(RDS))"
 
 psql-aurora:
 	$(call ssh,$(AURORA_LOADER)) "psql -d $(shell $(DSN) $(AURORA))"

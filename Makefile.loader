@@ -26,7 +26,7 @@ os:
 	sudo yum -y install git htop tmux emacs
 	sudo yum -y install postgresql96*
 	sudo yum -y install python36 python36-pip
-	sudo pip-3.6 install psycopg2
+	./scripts/install-local-pgsql.sh
 
 tools:
 	make -C $(TPCH_SRC) clean all

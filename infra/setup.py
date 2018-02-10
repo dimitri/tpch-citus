@@ -8,6 +8,7 @@ import configparser
 from datetime import date, datetime
 from collections import namedtuple
 
+Loader_conf = namedtuple('EC2', 'instance ami')
 EBS_conf    = namedtuple('EBS', 'iops size type')
 RDS_conf    = namedtuple('RDS', 'name iops size iclass stype version')
 Aurora_conf = namedtuple('Aurora', 'name iclass stype')
@@ -25,10 +26,12 @@ class Setup():
         self.vpc     = conf.get('aws', 'VPC')
         self.subnet  = conf.get('aws', 'SUBNET')
         self.sg      = conf.get('aws', 'SG')
-        self.ami     = conf.get('aws', 'AMI')
         self.keyname = conf.get('aws', 'KeyName')
 
-        self.itype   = conf.get('loader', 'instance')
+        self.loader = Loader_conf(
+            instance  = conf.get('loader', 'instance'),
+            ami       = conf.get('loader', 'ami')
+        )
 
         self.ebs = EBS_conf(
             iops = conf.getint('ebs', 'iops'),

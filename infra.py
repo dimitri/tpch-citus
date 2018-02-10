@@ -367,11 +367,32 @@ def cli(ctx, config):
     ctx.obj['CONFIG'] = Setup(config)
 
 
+@cli.command()
+@click.argument('dsn-or-aws-file')
+@click.pass_context
+def dsn(ctx, dsn_or_aws_file):
+    if dsn_or_aws_file[-5:] == ".json":
+        if os.path.exists(dsn_or_aws_file):
+            # That's an aws.out/ file, for an RDS instance
+            conf = ctx.obj['CONFIG']
+            conn = boto3.client('rds', conf.region)
+            rds = RDS(conf, conn, dsn_or_aws_file)
+            click.echo(rds.wait_for_dsn())
+        else:
+            raise click.ClickException('%s: file not found' % dsn_or_aws_file)
+    else:
+        # Citus and PostgreSQL cases:
+        # arg is expected to be a DSN already
+        click.echo(dsn_or_aws_file)
+
+
 cli.add_command(ec2)
 cli.add_command(rds)
 cli.add_command(aurora)
 cli.add_command(pgsql)
 cli.add_command(citus)
+cli.add_command(dsn)
+
 
 if __name__ == '__main__':
     cli(obj={})

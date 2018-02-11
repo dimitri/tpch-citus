@@ -37,7 +37,7 @@ def benchmark(system, name, schedule, kind, ini, debug):
 
 
 @cli.command()
-@click.option('--grammar', default='verbs adverbs')
+@click.option('--grammar', default='adverbs verbs')
 def name(grammar):
     """Generate a name for a TPC-H benchmark run."""
     click.echo(utils.compose_name(grammar=grammar))

@@ -46,15 +46,15 @@ class InitDB():
         self.steps = self.load.steps
         self.cpu = self.load.cpu
 
-    def run(self, name, debug=False):
+    def run(self, system, debug=False):
         "Initialize target database for TPC-H."
-        logging.info("%s: initializing the TPC-H schema" % (name))
+        logging.info("%s: initializing the TPC-H schema" % (system))
 
         start = time.monotonic()
 
         # create the schema, load the 'initdb' phase of data
         # then install the extra constraints, and finally VACUUM ANALYZE
-        logging.info("%s: create initial schema, %s variant", name, self.kind)
+        logging.info("%s: create initial schema, %s variant", system, self.kind)
 
         run_schema_file(self.drop, results=self.results, name="drop tables")
         run_schema_file(self.tables, results=self.results, name="create tables")
@@ -62,15 +62,15 @@ class InitDB():
 
         # self.load.run() is verbose already
         # It loads the data and does the VACUUM ANALYZE on each table
-        self.load.run(name)
+        self.load.run(system, 'initdb')
 
         for sqlfile in self.constraints:
-            logging.info("%s: install constraints from '%s'", name, sqlfile)
+            logging.info("%s: install constraints from '%s'", system, sqlfile)
             run_schema_file(sqlfile, results=self.results, name=sqlfile)
 
         end = time.monotonic()
         secs = end - start
 
         logging.info("%s: imported %d initial steps in %gs, using %d CPU",
-                     name, len(self.steps), secs, self.cpu)
+                     system, len(self.steps), secs, self.cpu)
         return

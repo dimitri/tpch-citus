@@ -19,7 +19,7 @@ def load(step, scale_factor, children):
 class DistributedLoad(DistributedTasks):
     def report_progress(self, arg):
         logging.info('%s: loaded step %d/%d for Scale Factor %d',
-                     self.name,
+                     self.system,
                      arg,
                      self.children,
                      self.scale_factor
@@ -40,16 +40,17 @@ class Load():
         self.dist.children = self.conf.children
         self.dist.results = self.results
 
-    def run(self, name):
+    def run(self, system, phase):
         "Load the next STEPs using as many as CPU cores."
-        self.name = name
+        self.system = system
+        self.dist.system = system
+
         logging.info("%s: loading %d steps of data using %d CPU: %s",
-                     name, len(self.steps), self.cpu, self.steps)
+                     system, len(self.steps), self.cpu, self.steps)
 
         start = datetime.now()
 
         res, secs = self.dist.run(
-            name,
             load,
             self.steps,
             self.conf.scale_factor,
@@ -57,16 +58,16 @@ class Load():
         )
         vsecs = self.vacuum()
 
-        self.results.register_load(name, self.steps, start, secs, vsecs)
+        self.results.register_load(phase, self.steps, start, secs, vsecs)
 
         logging.info("%s: loaded %d steps of data in %gs, using %d CPU",
-                     name, len(self.steps), secs, self.cpu)
+                     system, len(self.steps), secs, self.cpu)
         return
 
     def vacuum(self):
         start = time.monotonic()
 
-        logging.info("%s: vacuum analyze", self.name)
+        logging.info("%s: vacuum analyze", self.system)
         out = utils.run_command(VACUUM)
 
         for line in out:

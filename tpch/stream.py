@@ -15,7 +15,7 @@ def stream(queries):
 class StreamTaskPool(TaskPool):
     def report_progress(self):
         logging.info('%s: %d query streams executed in %gs',
-                     self.name,
+                     self.system,
                      len(self.tasks_done),
                      time.monotonic() - self.start)
 
@@ -39,21 +39,22 @@ class Stream():
         self.pool = StreamTaskPool(self.cpu, self.duration)
         self.pool.results = self.results
 
-    def run(self, name):
+    def run(self, system, phase):
         """Stream the given list of QUERIES on as many as CPU cores for given
         DURATION in minutes.
 
         """
         logging.info("%s: Running TPCH with %d CPUs for %ds, stream %s",
-                     name, self.cpu, self.duration, self.queries)
+                     system, self.cpu, self.duration, self.queries)
 
-        self.pool.stream_id = self.results.register_stream(name, self.duration)
+        self.pool.system = system
+        self.pool.stream_id = self.results.register_stream(phase, self.duration)
         self.pool.nbs = 0       # nb stream
         self.pool.nbq = 0       # nb queries
 
-        secs = self.pool.run(name, stream, self.queries)
+        secs = self.pool.run(stream, self.queries)
 
         logging.info(
             "%s: executed %d streams (%d queries) in %gs, using %d CPU",
-            name, self.pool.nbq, self.pool.nbs, secs, self.cpu)
+            system, self.pool.nbs, self.pool.nbq, secs, self.cpu)
         return

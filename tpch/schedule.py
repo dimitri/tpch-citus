@@ -44,11 +44,11 @@ class Schedule():
 
                 if type(job).__name__ == 'Stream':
                     cmd = Stream(job, self.results)
-                    cmd.run(phase)
+                    cmd.run(self.system, phase)
 
                 elif type(job).__name__ == 'Load':
                     cmd = Load(job, self.results)
-                    cmd.run(phase)
+                    cmd.run(self.system, phase)
 
                 else:
                     raise ValueError(

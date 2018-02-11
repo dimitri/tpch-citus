@@ -18,13 +18,12 @@ class TaskPool():
     def handle_results(self, results):
         pass
 
-    def run(self, name, fun, *args):
+    def run(self, fun, *args):
         """Run FUN with KWARGS as many times as possible for DURATION seconds,
         using as much as CPU cores in parallel. Return a list of results
         and the time we actually took in seconds.
 
         """
-        self.name = name
         self.pool = ProcessPoolExecutor(self.cpu)
         futures = []
 

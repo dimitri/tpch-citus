@@ -11,13 +11,12 @@ class DistributedTasks():
     def report_progress(self, arg):
         pass
 
-    def run(self, name, fun, arglist, *args):
+    def run(self, fun, arglist, *args):
         """Run FUN as many times as len(ARGLIST) and with an entry from ARGLIST
            each time, concurrently, on as many as CPU cores.
 
         FUN is called as if by: [fun(x, *args) for x in arglist].
         """
-        self.name = name
         self.start = time.monotonic()
 
         pool = ProcessPoolExecutor(self.cpu)

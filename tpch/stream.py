@@ -22,25 +22,26 @@ class StreamTaskPool(TaskPool):
 
 class Stream():
     def __init__(self, conf):
+        # conf is expected to be a Stream namedtuple, see setup.py
+        # extra code so that we can "walk like a duck" if needed
         self.conf = conf
-        self.queries = self.conf.stream.queries
-        self.duration = self.conf.stream.duration
+        self.queries = self.conf.queries
+        self.duration = self.conf.duration
+        self.cpu = self.conf.cpu
 
-        self.pool = StreamTaskPool(self.conf.scale.cpu, self.duration)
+        self.pool = StreamTaskPool(self.cpu, self.duration)
 
     def run(self, name):
         """Stream the given list of QUERIES on as many as CPU cores for given
         DURATION in minutes.
 
         """
-        cpu = self.conf.scale.cpu
-
         logging.info("%s: Running TPCH with %d CPUs for %ds, stream %s",
-                     name, cpu, self.duration, self.queries)
+                     name, self.cpu, self.duration, self.queries)
 
         qtimings, secs = self.pool.run(name, stream, self.queries)
 
         logging.info(
             "%s: executed %d streams of %d queries in %gs, using %d CPU",
-            name, len(qtimings), len(qtimings[0]), secs, cpu)
+            name, len(qtimings), len(qtimings[0]), secs, self.cpu)
         return

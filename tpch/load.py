@@ -17,26 +17,33 @@ def load(step, scale_factor, children):
 
 class DistributedLoad(DistributedTasks):
     def report_progress(self, arg):
-        logging.info('%s: loaded step %d', self.name, arg)
+        logging.info('%s: loaded step %d/%d for Scale Factor %d',
+                     self.name,
+                     arg,
+                     self.children,
+                     self.scale_factor
+        )
 
 
 class Load(DistributedTasks):
-    def __init__(self, conf, phase):
+    def __init__(self, conf):
+        # conf is expected to be a Load namedtuple, see setup.py
+        # extra code so that we can "walk like a duck" if needed
         self.conf = conf
-        self.phases = self.conf.load
-        self.steps = self.phases[phase]
+        self.steps = self.conf.steps
+        self.cpu = self.conf.cpu
 
-        self.dist = DistributedLoad(self.conf.scale.cpu)
+        self.dist = DistributedLoad(self.cpu)
+        self.dist.scale_factor = self.conf.scale_factor
+        self.dist.children = self.conf.children
 
     def report_progress(self, arg):
         logging.info('%s: loading step %s', self.name, arg)
 
     def run(self, name):
         "Load the next STEPs using as many as CPU cores."
-        cpu = self.conf.scale.cpu
-
         logging.info("%s: loading %d steps of data using %d CPU: %s",
-                     name, len(self.steps), cpu, self.steps)
+                     name, len(self.steps), self.cpu, self.steps)
 
         start = time.monotonic()
 
@@ -44,8 +51,8 @@ class Load(DistributedTasks):
             name,
             load,
             self.steps,
-            self.conf.scale.factor,
-            self.conf.scale.children
+            self.conf.scale_factor,
+            self.conf.children
         )
 
         logging.info("%s: vacuum analyze", name)
@@ -54,5 +61,5 @@ class Load(DistributedTasks):
         secs = time.monotonic() - start
 
         logging.info("%s: loaded %d steps of data in %gs, using %d CPU",
-                     name, len(self.steps), secs, cpu)
+                     name, len(self.steps), secs, self.cpu)
         return

@@ -2,15 +2,16 @@
 
 import sys
 import logging
+import pprint
+
+from tpch import utils
 from tpch import setup
-from tpch.load import Load
-from tpch.stream import Stream
-from tpch.initdb import InitDB
+from tpch.schedule import Schedule
 
 import click
 
 CONF = "tpch.ini"
-LOG_LEVEL = logging.INFO
+SCHEDULE = "full"
 
 
 @click.group()
@@ -20,31 +21,27 @@ def cli():
 
 @cli.command()
 @click.option("--ini", default=CONF, type=click.Path(exists=True))
+@click.option("--debug", is_flag=True, default=False)
 @click.option("--kind", default='pgsql')
-@click.argument('name')
-@click.argument('phase')
-def load(name, phase, ini, kind, debug):
+@click.option("--schedule", default=SCHEDULE)
+@click.option("--name")
+@click.argument('system')
+def benchmark(system, name, schedule, kind, ini, debug):
+    """Run a benchmark schedule/job on SYSTEM"""
+    name = name or utils.compose_name()
     conf = setup.Setup(ini)
+    utils.setup_logging(debug)
 
-    if phase == 'initdb':
-        cmd = InitDB(conf, kind=kind, phase=phase)
-    else:
-        cmd = Load(conf, phase)
-
-    cmd.run(name)
+    bench = Schedule(conf, system, kind=kind)
+    bench.run(name, schedule)
 
 
 @cli.command()
-@click.option("--ini", default=CONF, type=click.Path(exists=True))
-@click.argument('name')
-def stream(name, ini):
-    conf = setup.Setup(ini)
-    cmd = Stream(conf)
-    cmd.run(name)
+@click.option('--grammar', default='verbs adverbs')
+def name(grammar):
+    """Generate a name for a TPC-H benchmark run."""
+    click.echo(utils.compose_name(grammar=grammar))
 
 
 if __name__ == '__main__':
-    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
-                        level=LOG_LEVEL)
-    logging.info('Hello there')
     cli()

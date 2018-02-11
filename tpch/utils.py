@@ -1,5 +1,18 @@
 import shlex
 import subprocess
+import logging
+import os.path
+import random
+
+LOG_LEVEL  = logging.INFO
+LOG_FORMAT = '%(asctime)s %(levelname)s %(message)s'
+
+def setup_logging(debug=False):
+    level = LOG_LEVEL
+    if debug:
+        level = logging.DEBUG
+
+    logging.basicConfig(format=LOG_FORMAT, level=level)
 
 
 def run_command(command, verbose=False):
@@ -47,3 +60,40 @@ def expand_step_range(steps):
             return []
     except Exception:
         return []
+
+
+def compose_name(grammar='verbs adverbs', tokens='tpch-pg/src/dists.dss'):
+    distfile = os.path.join(os.path.dirname(__file__), '..', tokens)
+
+    dists = {}
+    for d in grammar.split():
+        dists[d] = []
+
+    n = 0
+    current_dist = None
+
+    with open(distfile, 'r') as df:
+        for line in df:
+            n += 1
+            line = line[:-1]
+
+            if current_dist:
+                if line.lower() == 'end %s' % current_dist:
+                    current_dist = None
+
+                else:
+                    token = line.split('|')[0]
+                    if token != 'COUNT':
+                        dists[current_dist].append(token)
+
+            else:
+                for d in dists.keys():
+                    if line.lower() == 'begin %s' % d:
+                        current_dist = d
+
+    name = []
+    for d in grammar.split():
+        n = random.randrange(len(dists[d]))
+        name.append(dists[d][n])
+
+    return '_'.join(name)

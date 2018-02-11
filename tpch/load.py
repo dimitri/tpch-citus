@@ -1,5 +1,6 @@
 import time
 import logging
+from datetime import datetime
 
 from . import utils
 from .task_dist import DistributedTasks
@@ -24,28 +25,28 @@ class DistributedLoad(DistributedTasks):
                      self.scale_factor
         )
 
-
-class Load(DistributedTasks):
-    def __init__(self, conf):
+class Load():
+    def __init__(self, conf, results):
         # conf is expected to be a Load namedtuple, see setup.py
         # extra code so that we can "walk like a duck" if needed
         self.conf = conf
         self.steps = self.conf.steps
         self.cpu = self.conf.cpu
 
+        self.results = results
+
         self.dist = DistributedLoad(self.cpu)
         self.dist.scale_factor = self.conf.scale_factor
         self.dist.children = self.conf.children
-
-    def report_progress(self, arg):
-        logging.info('%s: loading step %s', self.name, arg)
+        self.dist.results = self.results
 
     def run(self, name):
         "Load the next STEPs using as many as CPU cores."
+        self.name = name
         logging.info("%s: loading %d steps of data using %d CPU: %s",
                      name, len(self.steps), self.cpu, self.steps)
 
-        start = time.monotonic()
+        start = datetime.now()
 
         res, secs = self.dist.run(
             name,
@@ -54,12 +55,21 @@ class Load(DistributedTasks):
             self.conf.scale_factor,
             self.conf.children
         )
+        vsecs = self.vacuum()
 
-        logging.info("%s: vacuum analyze", name)
-        out = utils.run_command(VACUUM)
-
-        secs = time.monotonic() - start
+        self.results.register_load(name, self.steps, start, secs, vsecs)
 
         logging.info("%s: loaded %d steps of data in %gs, using %d CPU",
                      name, len(self.steps), secs, self.cpu)
         return
+
+    def vacuum(self):
+        start = time.monotonic()
+
+        logging.info("%s: vacuum analyze", self.name)
+        out = utils.run_command(VACUUM)
+
+        for line in out:
+            logging.debug(line)
+
+        return time.monotonic() - start

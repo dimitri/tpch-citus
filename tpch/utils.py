@@ -23,7 +23,9 @@ def run_command(command, verbose=False):
         print(cmd)
 
     with subprocess.Popen(cmd, stdout=subprocess.PIPE) as p:
-        return p.stdout.readlines()
+        b = p.stdout.read()
+        s = b.decode('utf-8')
+        return s.splitlines()
 
 
 def parse_psql_timings(queries, output):
@@ -32,8 +34,9 @@ def parse_psql_timings(queries, output):
     qstream = queries.split(" ")
     i = 0
     for line in output:
-        if line and line.startswith(b'Time: '):
-            timing = line[len(b'Time: '):-1]
+        if line and line.startswith(u'Time: '):
+            ms_pos = line.find('ms') + len('ms')
+            timing = line[len(u'Time: '):ms_pos]
             timings[qstream[i]] = timing
             i = i + 1
 

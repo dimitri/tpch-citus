@@ -5,6 +5,7 @@ from . import utils
 from .load import Load
 from .stream import Stream
 from .initdb import InitDB, run_schema_file
+from .results import Results
 
 
 class Schedule():
@@ -13,6 +14,7 @@ class Schedule():
         self.system = system
         self.kind = kind
 
+        self.results = None
 
     def run(self, name, schedule='schedule'):
         self.name = name
@@ -25,12 +27,15 @@ class Schedule():
 
         logging.info('%s: starting benchmark %s', self.system, self.name)
 
+        self.results = Results(self.conf, self.system, self.name)
+        self.results.register_benchmark()
+
         for phase in self.schedule:
             logging.info('%s: starting schedule %s', self.system, phase)
 
             # We have some hard-coded schedule phase names
             if phase == 'initdb':
-                initdb = InitDB(self.conf, self.kind)
+                initdb = InitDB(self.conf, self.results, kind=self.kind)
                 initdb.run(self.system)
 
             else:
@@ -38,12 +43,12 @@ class Schedule():
                 job = self.conf.jobs[phase]
 
                 if type(job).__name__ == 'Stream':
-                    cmd = Stream(job)
-                    cmd.run(self.system)
+                    cmd = Stream(job, self.results)
+                    cmd.run(phase)
 
                 elif type(job).__name__ == 'Load':
-                    cmd = Load(job)
-                    cmd.run(self.system)
+                    cmd = Load(job, self.results)
+                    cmd.run(phase)
 
                 else:
                     raise ValueError(

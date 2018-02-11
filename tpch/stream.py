@@ -19,9 +19,14 @@ class StreamTaskPool(TaskPool):
                      len(self.tasks_done),
                      time.monotonic() - self.start)
 
+    def handle_results(self, result):
+        self.nbs += 1
+        for name, duration in result.items():
+            self.nbq += 1
+            self.results.register_query_timings(self.stream_id, name, duration)
 
 class Stream():
-    def __init__(self, conf):
+    def __init__(self, conf, results):
         # conf is expected to be a Stream namedtuple, see setup.py
         # extra code so that we can "walk like a duck" if needed
         self.conf = conf
@@ -29,7 +34,10 @@ class Stream():
         self.duration = self.conf.duration
         self.cpu = self.conf.cpu
 
+        self.results = results
+
         self.pool = StreamTaskPool(self.cpu, self.duration)
+        self.pool.results = self.results
 
     def run(self, name):
         """Stream the given list of QUERIES on as many as CPU cores for given
@@ -39,9 +47,13 @@ class Stream():
         logging.info("%s: Running TPCH with %d CPUs for %ds, stream %s",
                      name, self.cpu, self.duration, self.queries)
 
-        qtimings, secs = self.pool.run(name, stream, self.queries)
+        self.pool.stream_id = self.results.register_stream(name, self.duration)
+        self.pool.nbs = 0       # nb stream
+        self.pool.nbq = 0       # nb queries
+
+        secs = self.pool.run(name, stream, self.queries)
 
         logging.info(
-            "%s: executed %d streams of %d queries in %gs, using %d CPU",
-            name, len(qtimings), len(qtimings[0]), secs, self.cpu)
+            "%s: executed %d streams (%d queries) in %gs, using %d CPU",
+            name, self.pool.nbq, self.pool.nbs, secs, self.cpu)
         return

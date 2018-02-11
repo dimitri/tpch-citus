@@ -1,21 +1,33 @@
 import time
 import logging
+from datetime import datetime
 from . import utils
 from .load import Load
 
 SCHEMA        = 'make SCHEMA=%s -f Makefile.loader schema'
 CARDINALITIES = './schema/cardinalities.sql'
 
-def run_schema_file(filename):
+def run_schema_file(filename, results=None, name=None):
+    now = datetime.now()
+    start = time.monotonic()
+
     out = utils.run_command(SCHEMA % (filename))
     for line in out:
         logging.debug(line)
 
+    secs =  time.monotonic() - start
+
+    if results and name:
+        results.register_initdb_step(name, now, secs)
+
+    return
 
 class InitDB():
-    def __init__(self, conf, kind='pgsql'):
+    def __init__(self, conf, results, kind='pgsql'):
         self.conf = conf
         self.kind = kind
+
+        self.results = results
 
         if kind == 'pgsql':
             self.tables = self.conf.pgsql.tables
@@ -30,7 +42,7 @@ class InitDB():
 
         # initdb is hardcoded and better be present in the INI file
         # self.load is a Load namedtuple instance
-        self.load = Load(self.conf.jobs['initdb'])
+        self.load = Load(self.conf.jobs['initdb'], self.results)
         self.steps = self.load.steps
         self.cpu = self.load.cpu
 
@@ -44,8 +56,8 @@ class InitDB():
         # then install the extra constraints, and finally VACUUM ANALYZE
         logging.info("%s: create initial schema, %s variant", name, self.kind)
 
-        run_schema_file(self.drop)
-        run_schema_file(self.tables)
+        run_schema_file(self.drop, results=self.results, name="drop tables")
+        run_schema_file(self.tables, results=self.results, name="create tables")
         run_schema_file(CARDINALITIES)
 
         # self.load.run() is verbose already
@@ -54,7 +66,7 @@ class InitDB():
 
         for sqlfile in self.constraints:
             logging.info("%s: install constraints from '%s'", name, sqlfile)
-            run_schema_file(sqlfile)
+            run_schema_file(sqlfile, results=self.results, name=sqlfile)
 
         end = time.monotonic()
         secs = end - start

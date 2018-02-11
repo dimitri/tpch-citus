@@ -10,10 +10,12 @@ class TaskPool():
         self.duration = duration
         self.pause = pause
 
-        self.results = []
         self.tasks_done = []
 
     def report_progress(self):
+        pass
+
+    def handle_results(self, results):
         pass
 
     def run(self, name, fun, *args):
@@ -43,7 +45,7 @@ class TaskPool():
             # grab results of done futures we didn't collect before
             for future in ready:
                 self.tasks_done.append(future)
-                self.results.append(future.result())
+                self.handle_results(future.result())
 
             for x in range(len(ready)):
                 # and submit another stream of queries
@@ -56,9 +58,9 @@ class TaskPool():
         ready = done - set(self.tasks_done)
         for future in ready:
             self.tasks_done.append(future)
-            self.results.append(future.result())
+            self.handle_results(future.result())
 
         self.pool.shutdown(wait=False)
         self.end = time.monotonic()
 
-        return self.results, self.end - self.start
+        return self.end - self.start

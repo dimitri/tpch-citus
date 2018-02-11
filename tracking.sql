@@ -4,35 +4,42 @@
 
 begin;
 
-create table run
+create table if not exists run
  (
    id        serial not null primary key,
    name      text,
+   system    text,
    setup     jsonb,
    start     timestamptz,
    duration  interval,
-   sf        integer
+   sf        integer,
+
+   unique(name, system)
  );
 
-create table load
+create table if not exists load
  (
    id        serial not null primary key,
    run       integer not null references run(id),
-   name      text,
+   name      text not null,
    steps     integer[],
-   sf        int4range,
-   start     timestamptz,
-   duration  interval
+   start     timestamptz not null,
+   duration  interval not null,
+   vacuum_t  interval,
+
+   unique(run, name)
  );
 
-create table stream
+create table if not exists stream
  (
    id        serial not null primary key,
    run       integer not null references run(id),
-   duration  interval
+   name      text not null,
+   start     timestamptz,
+   duration  interval not null
  );
 
-create table query
+create table if not exists query
  (
    id        bigserial not null primary key,
    stream    integer not null references stream(id),

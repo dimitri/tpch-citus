@@ -23,7 +23,7 @@ class Setup():
 
         for option in self.conf.options('schedule'):
             s = self.conf.get('schedule', option)
-            self.schedules[s] = self.parse_run_job(s)
+            self.schedules[option] = self.parse_run_job(s)
 
         self.scale = Scale(
             cpu = self.conf.getint('scale', 'cpu'),

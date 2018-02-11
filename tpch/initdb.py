@@ -1,5 +1,6 @@
 import time
-from . import utils, pooling
+import logging
+from . import utils
 from .load import Load
 
 SCHEMA        = 'make SCHEMA=%s -f Makefile.loader schema'
@@ -39,31 +40,31 @@ class InitDB():
 
         # create the schema, load the 'initdb' phase of data
         # then install the extra constraints, and finally VACUUM ANALYZE
-        print("%s: create initial schema, %s variant" % (name, self.kind))
+        logging.info("%s: create initial schema, %s variant", name, self.kind)
 
         out = utils.run_command(SCHEMA % (self.tables))
-        if debug:
-            print(out)
+        for line in out:
+            logging.debug(line)
 
         # install the cardinalities view
         out = utils.run_command(SCHEMA % (CARDINALITIES))
-        if debug:
-            print(out)
+        for line in out:
+            logging.debug(line)
 
         # self.load.run() is verbose already
         # It loads the data and does the VACUUM ANALYZE on each table
         self.load.run(name)
 
         for sqlfile in self.constraints:
-            print("%s: install constraints from '%s'" % (name, sqlfile))
+            logging.info("%s: install constraints from '%s'", name, sqlfile)
             out = utils.run_command(SCHEMA % (sqlfile))
 
-            if debug:
-                print(out)
+            for line in out:
+                logging.debug(line)
 
         end = time.monotonic()
         secs = end - start
 
-        print("%s: imported %d initial steps in %gs, using %d CPU" %
-              (name, len(self.steps), secs, self.conf.scale.cpu))
+        logging.info("%s: imported %d initial steps in %gs, using %d CPU",
+                     name, len(self.steps), secs, self.conf.scale.cpu)
         return

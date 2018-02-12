@@ -10,15 +10,18 @@ CITUS_LOADER  = aws.out/citus.loader.json
 
 SCHEDULE ?= full
 
-NAME   = aws.out/name.txt
-BNAME  = $(shell cat $(NAME))
-INFRA  = ./infra.py --config ./infra.ini
-WAIT   = $(INFRA) ec2 wait --json
-DSN    = $(INFRA) dsn
-PGSQL  = $(shell $(INFRA) pgsql dsn)
-CITUS  = $(shell $(INFRA) citus dsn)
-RSOPTS = --exclude=.git --exclude=__pycache__
-RSYNC  = rsync -e "ssh -o StrictHostKeyChecking=no" -avz $(RSOPTS)
+NAME    = aws.out/name.txt
+BNAME   = $(shell cat $(NAME))
+
+LOGFILE = ./tpch.out
+
+INFRA   = ./infra.py --config ./infra.ini
+WAIT    = $(INFRA) ec2 wait --json
+DSN     = $(INFRA) dsn
+PGSQL   = $(shell $(INFRA) pgsql dsn)
+CITUS   = $(shell $(INFRA) citus dsn)
+RSOPTS  = --exclude=.git --exclude=__pycache__
+RSYNC   = rsync -e "ssh -o StrictHostKeyChecking=no" -avz $(RSOPTS)
 
 #
 # Make commands to help write targets
@@ -26,7 +29,7 @@ RSYNC  = rsync -e "ssh -o StrictHostKeyChecking=no" -avz $(RSOPTS)
 rsync = $(RSYNC) ./ ec2-user@$(shell $(WAIT) $(1)):tpch/
 ssh   = ssh -l ec2-user $(shell $(WAIT) $(1))
 rmake = $(call ssh,$(1)) "cd tpch && /usr/bin/time -p make DSN=$(shell $(DSN) $(2)) $(4) -f Makefile.loader $(3)"
-tpch  = $(call ssh,$(1)) "cd tpch && DSN=$(shell $(DSN) $(2)) ./tpch.py $(3) --name $(BNAME) --schedule $(SCHEDULE)"
+tpch  = $(call ssh,$(1)) "cd tpch && DSN=$(shell $(DSN) $(2)) ./tpch.py $(3) --name $(BNAME) --schedule $(SCHEDULE) 2>&1 | /usr/bin/tee $(LOGFILE)"
 
 .SILENT: help
 help:
@@ -40,10 +43,10 @@ help:
 	echo "  drop           drop TPC-H test tables"
 	echo
 	echo "  benchmark      bench-citus bench-pgsql bench-rds bench-aurora"
-	echo "  bench-citus    run the JOB benchmark on the citus system"
-	echo "  bench-pgsql    run the JOB benchmark on the pgsql system"
-	echo "  bench-rds      run the JOB benchmark on the rds system"
-	echo "  bench-aurora   run the JOB benchmark on the aurora system"
+	echo "  bench-citus    run given SCHEDULE on the citus system"
+	echo "  bench-pgsql    run given SCHEDULE on the pgsql system"
+	echo "  bench-rds      run given SCHEDULE on the rds system"
+	echo "  bench-aurora   run given SCHEDULE on the aurora system"
 	echo
 	echo "  cardinalities  run SELECT count(*) on all the tables"
 

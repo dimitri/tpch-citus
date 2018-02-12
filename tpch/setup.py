@@ -30,7 +30,6 @@ class Setup():
             factor = self.conf.getint('scale', 'factor'),
             children = self.conf.getint('scale', 'children'))
 
-
         for section in self.conf.sections():
             if self.conf.has_option(section, 'type'):
                 if self.conf.get(section, 'type') == 'load':
@@ -74,7 +73,6 @@ class Setup():
 
         self.results = Results(dsn = self.conf.get('results', 'dsn'))
 
-
     def parse_schedule(self, spec):
         "Parse a test schedule: a series of comma-separated job names"
         joblist = [x.strip() for x in spec.split(',') if x]
@@ -84,7 +82,6 @@ class Setup():
                 raise ValueError("%s: unknown job in the run section" % job)
 
         return joblist
-
 
     def parse_run_job(self, jobspec):
         "Parse a TPCH RUN job specification into something we can run"
@@ -100,7 +97,6 @@ class Setup():
 
         return jobs
 
-
     def to_json(self):
         config = {}
         for section in self.conf:
@@ -115,10 +111,9 @@ class Setup():
                 else:
                     try:
                         value = int(value)
-                    except:
+                    except ValueError:
                         pass
 
                 config[section][option] = value
 
         return json.dumps(config, indent=1)
-

@@ -1,18 +1,9 @@
+import sys
 import shlex
 import subprocess
-import logging
 import os.path
 import random
-
-LOG_LEVEL  = logging.INFO
-LOG_FORMAT = '%(asctime)s %(levelname)s %(message)s'
-
-def setup_logging(debug=False):
-    level = LOG_LEVEL
-    if debug:
-        level = logging.DEBUG
-
-    logging.basicConfig(format=LOG_FORMAT, level=level)
+import logging
 
 
 def run_command(command, verbose=False):
@@ -20,7 +11,7 @@ def run_command(command, verbose=False):
     cmd = shlex.split(command)
 
     if verbose:
-        print(cmd)
+        logging.getLogger('TPCH').info(cmd)
 
     with subprocess.Popen(cmd, stdout=subprocess.PIPE) as p:
         b = p.stdout.read()

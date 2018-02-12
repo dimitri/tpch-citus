@@ -1,3 +1,4 @@
 click
 psycopg2-binary
-cotyledon
+python-daemon
+service

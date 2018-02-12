@@ -20,7 +20,7 @@ WAIT    = $(INFRA) ec2 wait --json
 DSN     = $(INFRA) dsn
 PGSQL   = $(shell $(INFRA) pgsql dsn)
 CITUS   = $(shell $(INFRA) citus dsn)
-RSOPTS  = --exclude=.git --exclude=__pycache__
+RSOPTS  = --exclude-from 'rsync.exclude'
 RSYNC   = rsync -e "ssh -o StrictHostKeyChecking=no" -avz $(RSOPTS)
 
 #
@@ -29,7 +29,7 @@ RSYNC   = rsync -e "ssh -o StrictHostKeyChecking=no" -avz $(RSOPTS)
 rsync = $(RSYNC) ./ ec2-user@$(shell $(WAIT) $(1)):tpch/
 ssh   = ssh -l ec2-user $(shell $(WAIT) $(1))
 rmake = $(call ssh,$(1)) "cd tpch && /usr/bin/time -p make DSN=$(shell $(DSN) $(2)) $(4) -f Makefile.loader $(3)"
-tpch  = $(call ssh,$(1)) "cd tpch && DSN=$(shell $(DSN) $(2)) ./tpch.py $(3) --name $(BNAME) --schedule $(SCHEDULE) 2>&1 | /usr/bin/tee $(LOGFILE)"
+tpch  = $(call ssh,$(1)) LC_ALL=en_US.utf8 ./tpch/tpch.py $(3) --name $(BNAME) --schedule $(SCHEDULE) --log $(LOGFILE) --dsn $(shell $(DSN) $(2)) --detach
 
 .SILENT: help
 help:
@@ -48,9 +48,13 @@ help:
 	echo "  bench-rds      run given SCHEDULE on the rds system"
 	echo "  bench-aurora   run given SCHEDULE on the aurora system"
 	echo
+	echo "  tail-f         see logs from currently running benchmark"
+	echo
 	echo "  cardinalities  run SELECT count(*) on all the tables"
 
 benchmark: infra $(NAME) bench-rds bench-aurora bench-pgsql bench-citus ;
+
+name: $(NAME) ;
 
 $(NAME):
 	./tpch.py name > $@
@@ -63,9 +67,20 @@ bench-pgsql: loader-pgsql
 
 bench-rds: loader-rds rds
 	$(call tpch,$(RDS_LOADER),$(RDS),benchmark rds)
+	$(call ssh,$(RDS_LOADER)) tail -f $(LOGFILE)
 
 bench-aurora: loader-aurora aurora
 	$(call tpch,$(AURORA_LOADER),$(AURORA),benchmark aurora)
+	$(call ssh,$(RDS_LOADER)) tail -f $(LOGFILE)
+
+tail-f: tail-f-citus tail-f-pgsql tail-f-rds tail-f-aurora ;
+
+tail-f-rds:
+	$(call ssh,$(RDS_LOADER)) tail -f $(LOGFILE)
+
+tail-f-aurora:
+	$(call ssh,$(AURORA_LOADER)) tail -f $(LOGFILE)
+
 
 infra: rds aurora loaders ;
 
@@ -91,15 +106,15 @@ rds: $(RDS) ;
 aurora: $(AURORA) ;
 
 terminate: terminate-loaders
-	$(INFRA) rds delete --json $(RDS)
-	$(INFRA) aurora delete --json $(AURORA)
+	-$(INFRA) rds delete --json $(RDS)
+	-$(INFRA) aurora delete --json $(AURORA)
 
 terminate-loaders:
 	rm -rf $(NAME)
-	$(INFRA) ec2 terminate --json $(RDS_LOADER)
-	$(INFRA) ec2 terminate --json $(AURORA_LOADER)
-	$(INFRA) ec2 terminate --json $(PGSQL_LOADER)
-	$(INFRA) ec2 terminate --json $(CITUS_LOADER)
+	-$(INFRA) ec2 terminate --json $(RDS_LOADER)
+	-$(INFRA) ec2 terminate --json $(AURORA_LOADER)
+	-$(INFRA) ec2 terminate --json $(PGSQL_LOADER)
+	-$(INFRA) ec2 terminate --json $(CITUS_LOADER)
 
 drop: drop-rds drop-aurora drop-pgsql drop-citus ;
 
@@ -158,7 +173,7 @@ pep8: pycodestyle ;
 pycodestyle:
 	pycodestyle --ignore E251,E221 *py tpch/*py infra/*py
 
-.PHONY: infra rds aurora loaders status
+.PHONY: infra rds aurora loaders status name
 .PHONY: becnhmark bench-rds bench-aurora bench-pgsql bench-citus
 .PHONY: shell-rds shell-aurora psql-rds psql-aurora
 .PHONY: terminate terminate-loaders

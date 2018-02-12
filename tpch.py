@@ -5,40 +5,26 @@ import sys
 import signal
 import logging
 
+from service import find_syslog, Service
+
 from tpch import utils
 from tpch import setup
 from tpch.schedule import Schedule
 
 import click
-import cotyledon
+import os.path
 
-CONF = "tpch.ini"
+CONF     = os.path.join(os.path.dirname(__file__), 'tpch.ini')
 SCHEDULE = "full"
+LOG_FILE = "/tmp/tpch.log"
 
 
-class TpchService(cotyledon.Service):
-    def __init__(self, worker_id, system, name, conf, kind, schedule):
-        super(TpchService, self).__init__(worker_id)
-        self.system = system
-        self.name = name
-        self.conf = conf
-        self.kind = kind
-        self.schedule = schedule
+class TpchService(Service):
+    def __init__(self, name, pid_dir='/tmp'):
+        super(TpchService, self).__init__(name, pid_dir=pid_dir)
 
     def run(self):
-        self.bench = Schedule(self.conf, self.system, kind=self.kind)
-        self.bench.run(self.name, self.schedule)
-
-        # we're done, signal the Service Manager that we can quit now
-        os.kill(os.getppid(), signal.SIGINT)
-
-
-class TpchManager(cotyledon.ServiceManager):
-    def __init__(self, system, name, conf, kind, schedule):
-        super(TpchManager, self).__init__()
-
-        self.service_id = self.add(TpchService, 1,
-                                   (system, name, conf, kind, schedule))
+        self.bench.run(self.bname, self.schedule)
 
 
 @click.group()
@@ -48,20 +34,47 @@ def cli():
 
 @cli.command()
 @click.option("--ini", default=CONF, type=click.Path(exists=True))
+@click.option("--log", default=LOG_FILE, type=click.Path())
 @click.option("--debug", is_flag=True, default=False)
+@click.option("--detach", is_flag=True, default=False)
 @click.option("--kind", default='pgsql')
 @click.option("--schedule", default=SCHEDULE)
 @click.option("--name")
+@click.option("--dsn", envvar='DSN')
 @click.argument('system')
-def benchmark(system, name, schedule, kind, ini, debug):
+def benchmark(system, name, schedule, kind, dsn, ini, log, debug, detach):
     """Run a benchmark schedule/job on SYSTEM"""
     name = name or utils.compose_name()
     conf = setup.Setup(ini)
-    utils.setup_logging(debug)
 
-    # Run as a managed service so that we continue with our benchmark in the
-    # background even when we lose e.g. the ssh connection to the shell
-    TpchManager(system, name, conf, kind, schedule).run()
+    logger = logging.getLogger('TPCH')
+    llevel = logging.INFO
+    lfmter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    if debug:
+        llevel = logging.DEBUG
+
+    logger.setLevel(llevel)
+
+    fh = logging.FileHandler(log, 'w')
+    fh.setLevel(llevel)
+    fh.setFormatter(lfmter)
+    logger.addHandler(fh)
+
+    if detach:
+        tpch = TpchService('TPCH', pid_dir='/tmp')
+        tpch.bench = Schedule(conf, system, logger, dsn, kind=kind)
+        tpch.bname = name
+        tpch.schedule = schedule
+        tpch.start()
+    else:
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setLevel(llevel)
+        ch.setFormatter(lfmter)
+        logger.addHandler(ch)
+
+        bench = Schedule(conf, system, logger, dsn, kind=kind)
+        bench.run(name, schedule)
+
 
 @cli.command()
 @click.option('--grammar', default='adverbs verbs')

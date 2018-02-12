@@ -1,6 +1,4 @@
-REPOSITORY = https://github.com/citusdata/test-automation
-BRANCH     = tpch-pg
-DBNAME     = tpch
+TOP := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 # Those are meant to be filled-in by the tpch.py driver
 # It's still possible to hack them around directly, of course
@@ -10,8 +8,8 @@ S       ?= 1
 DSN     ?= postgresql://tpch@localhost:5432/TPCH
 STREAM  ?= 1
 
-TPCH_PG  = ./tpch-pg/
-TPCH_SRC = ./tpch-pg/src/
+TPCH_PG  = $(TOP)/tpch-pg/
+TPCH_SRC = $(TOP)/tpch-pg/src/
 QUERIES  = ../queries/
 DBGEN    = ./dbgen
 QGEN     = DSS_QUERY=$(QUERIES) ./qgen
@@ -24,8 +22,9 @@ VTABLES  = nation region part supplier partsupp customer orders lineitem
 all: os repo ;
 
 os:
-	sudo yum -y groupinstall "Development Tools"
-	sudo yum -y install $(PACKAGES)
+	sudo yum -q -y groupinstall "Development Tools"
+	sudo yum -q -y install $(PACKAGES)
+	sudo localedef -i en_US -f UTF-8 en_US.UTF-8
 	./scripts/install-local-pgsql.sh
 	psql -v ON_ERROR_STOP=1 -f tracking.sql -d tpch-results
 
@@ -34,7 +33,7 @@ tools:
 	make -C $(TPCH_SRC) clean all
 
 schema:
-	$(PSQL) -f $(SCHEMA)
+	$(PSQL) -f $(TOP)/$(SCHEMA)
 
 constraints:
 	$(PSQL) -f schema/tpch-pkeys.sql
@@ -42,9 +41,7 @@ constraints:
 	$(PSQL) -f schema/tpch-alter.sql
 
 vacuum:
-	for t in $(VTABLES); do                                \
-		$(PSQL) -c '\timing' -c "vacuum analyze $$t;"; \
-	done
+	$(PSQL) -c '\timing' -f schema/tpch-vacuum.sql
 
 load:
 	# load the next Step of data

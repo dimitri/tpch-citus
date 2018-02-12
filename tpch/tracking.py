@@ -16,7 +16,6 @@ class Tracking():
         self.name = name
         self.dsn = self.conf.results.dsn
 
-
     def register_benchmark(self, schedule):
         conn = psycopg2.connect(self.dsn)
         curs = conn.cursor()
@@ -35,7 +34,6 @@ insert into run(name, system, setup, schedule, start, sf)
         conn.commit()
         return self.id
 
-
     def register_run_time(self, duration):
         conn = psycopg2.connect(self.dsn)
         curs = conn.cursor()
@@ -47,7 +45,6 @@ update run
         curs.execute(sql, (duration, self.id))
         conn.commit()
         return
-
 
     def register_job(self, job_name, start,
                      secs=None, steps=None, vsecs=None):
@@ -65,7 +62,6 @@ insert into job(run, name, steps, start, duration, vacuum_t)
         conn.commit()
         return job_id
 
-
     def register_job_time(self, job_id, duration):
         conn = psycopg2.connect(self.dsn)
         curs = conn.cursor()
@@ -78,7 +74,6 @@ update job
         conn.commit()
         return
 
-
     def register_query_timings(self, job_id, query_name, duration):
         conn = psycopg2.connect(self.dsn)
         curs = conn.cursor()
@@ -89,4 +84,3 @@ insert into query(job, name, duration)
         curs.execute(sql, (job_id, query_name, duration))
         conn.commit()
         return
-

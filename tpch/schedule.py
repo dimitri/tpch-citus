@@ -1,5 +1,4 @@
 import time
-import logging
 
 from . import utils
 from .load import Load
@@ -9,12 +8,14 @@ from .tracking import Tracking
 
 
 class Schedule():
-    def __init__(self, conf, system, kind='pgsql'):
+    def __init__(self, conf, system, logger, dsn, kind='pgsql'):
+        self.dsn = dsn
         self.conf = conf
         self.system = system
         self.kind = kind
 
         self.track = None
+        self.logger = logger
 
     def run(self, name, schedule='schedule'):
         self.name = name
@@ -26,17 +27,18 @@ class Schedule():
         self.start = time.monotonic()
         self.schedule = self.conf.schedules[schedule]
 
-        logging.info('%s: starting benchmark %s', self.system, self.name)
+        self.logger.info('%s: starting benchmark %s', self.system, self.name)
 
         self.track = Tracking(self.conf, self.system, self.name)
         self.track.register_benchmark(schedule)
 
         for phase in self.schedule:
-            logging.info('%s: starting schedule %s', self.system, phase)
+            self.logger.info('%s: starting schedule %s', self.system, phase)
 
             # We have some hard-coded schedule phase names
             if phase == 'initdb':
-                initdb = InitDB(self.conf, self.track, kind=self.kind)
+                initdb = InitDB(self.dsn, self.conf, self.logger, self.track,
+                                kind=self.kind)
                 initdb.run(self.system)
 
             else:
@@ -44,11 +46,11 @@ class Schedule():
                 job = self.conf.jobs[phase]
 
                 if type(job).__name__ == 'Stream':
-                    cmd = Stream(job, self.track)
+                    cmd = Stream(job, self.dsn, self.logger, self.track)
                     cmd.run(self.system, phase)
 
                 elif type(job).__name__ == 'Load':
-                    cmd = Load(job, self.track)
+                    cmd = Load(job, self.dsn, self.logger, self.track)
                     cmd.run(self.system, phase)
 
                 else:

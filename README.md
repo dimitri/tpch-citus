@@ -18,15 +18,11 @@ To run the Citus TPC-H benchmark, follow those steps:
 The tests themselves consist of several units. We're interested in both the
 data loading time and the read-only query performances:
 
-  - load a bunch of data: `make PHASE=initdb load`
-  - do a concurrent read test: `make -j4 stream`
+    make -j 4 infra
+    make -j 4 SCHEDULE=full benchmark
 
-You can achieve a simple one-stage test like with with `make`, the default
-`all` target runs the targets `infra`, `initdb`, and `stream` in that order.
-
-The concurrent read test here is using `-j4` and thus will run all tests
-concurrently (RDS, Aurora, PgSQL, Citus), thanks to make integrated
-parallelism.
+As we are using `-j4` the four tested system can be tested concurrently
+(RDS, Aurora, PgSQL, Citus), thanks to make integrated parallelism.
 
 ## Running the benchmarks locally
 

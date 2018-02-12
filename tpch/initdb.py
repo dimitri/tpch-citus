@@ -7,7 +7,7 @@ from .load import Load
 SCHEMA        = 'make SCHEMA=%s -f Makefile.loader schema'
 CARDINALITIES = './schema/cardinalities.sql'
 
-def run_schema_file(filename, results=None, name=None):
+def run_schema_file(filename, track=None, name=None):
     now = datetime.now()
     start = time.monotonic()
 
@@ -17,17 +17,17 @@ def run_schema_file(filename, results=None, name=None):
 
     secs =  time.monotonic() - start
 
-    if results and name:
-        results.register_initdb_step(name, now, secs)
+    if track and name:
+        track.register_job(name, start=now, secs=secs)
 
     return
 
 class InitDB():
-    def __init__(self, conf, results, kind='pgsql'):
+    def __init__(self, conf, track, kind='pgsql'):
         self.conf = conf
         self.kind = kind
 
-        self.results = results
+        self.track = track
 
         if kind == 'pgsql':
             self.tables = self.conf.pgsql.tables
@@ -42,7 +42,7 @@ class InitDB():
 
         # initdb is hardcoded and better be present in the INI file
         # self.load is a Load namedtuple instance
-        self.load = Load(self.conf.jobs['initdb'], self.results)
+        self.load = Load(self.conf.jobs['initdb'], self.track)
         self.steps = self.load.steps
         self.cpu = self.load.cpu
 
@@ -56,8 +56,8 @@ class InitDB():
         # then install the extra constraints, and finally VACUUM ANALYZE
         logging.info("%s: create initial schema, %s variant", system, self.kind)
 
-        run_schema_file(self.drop, results=self.results, name="drop tables")
-        run_schema_file(self.tables, results=self.results, name="create tables")
+        run_schema_file(self.drop, track=self.track, name="drop tables")
+        run_schema_file(self.tables, track=self.track, name="create tables")
         run_schema_file(CARDINALITIES)
 
         # self.load.run() is verbose already
@@ -66,7 +66,7 @@ class InitDB():
 
         for sqlfile in self.constraints:
             logging.info("%s: install constraints from '%s'", system, sqlfile)
-            run_schema_file(sqlfile, results=self.results, name=sqlfile)
+            run_schema_file(sqlfile, track=self.track, name=sqlfile)
 
         end = time.monotonic()
         secs = end - start

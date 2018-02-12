@@ -26,19 +26,19 @@ class DistributedLoad(DistributedTasks):
         )
 
 class Load():
-    def __init__(self, conf, results):
+    def __init__(self, conf, track):
         # conf is expected to be a Load namedtuple, see setup.py
         # extra code so that we can "walk like a duck" if needed
         self.conf = conf
         self.steps = self.conf.steps
         self.cpu = self.conf.cpu
 
-        self.results = results
+        self.track = track
 
         self.dist = DistributedLoad(self.cpu)
         self.dist.scale_factor = self.conf.scale_factor
         self.dist.children = self.conf.children
-        self.dist.results = self.results
+        self.dist.track = self.track
 
     def run(self, system, phase):
         "Load the next STEPs using as many as CPU cores."
@@ -58,7 +58,8 @@ class Load():
         )
         vsecs = self.vacuum()
 
-        self.results.register_load(phase, self.steps, start, secs, vsecs)
+        self.track.register_job(phase, start=start,
+                                secs=secs, vsecs=vsecs, steps=self.steps)
 
         logging.info("%s: loaded %d steps of data in %gs, using %d CPU",
                      system, len(self.steps), secs, self.cpu)

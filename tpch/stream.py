@@ -1,5 +1,6 @@
 import time
 import logging
+from datetime import datetime
 
 from . import utils
 from .task_pool import TaskPool
@@ -23,10 +24,10 @@ class StreamTaskPool(TaskPool):
         self.nbs += 1
         for name, duration in result.items():
             self.nbq += 1
-            self.results.register_query_timings(self.stream_id, name, duration)
+            self.track.register_query_timings(self.stream_id, name, duration)
 
 class Stream():
-    def __init__(self, conf, results):
+    def __init__(self, conf, track):
         # conf is expected to be a Stream namedtuple, see setup.py
         # extra code so that we can "walk like a duck" if needed
         self.conf = conf
@@ -34,10 +35,10 @@ class Stream():
         self.duration = self.conf.duration
         self.cpu = self.conf.cpu
 
-        self.results = results
+        self.track = track
 
         self.pool = StreamTaskPool(self.cpu, self.duration)
-        self.pool.results = self.results
+        self.pool.track = self.track
 
     def run(self, system, phase):
         """Stream the given list of QUERIES on as many as CPU cores for given
@@ -47,12 +48,16 @@ class Stream():
         logging.info("%s: Running TPCH with %d CPUs for %ds, stream %s",
                      system, self.cpu, self.duration, self.queries)
 
+        start = datetime.now()
+
         self.pool.system = system
-        self.pool.stream_id = self.results.register_stream(phase, self.duration)
+        self.pool.stream_id = self.track.register_job(phase, start)
         self.pool.nbs = 0       # nb stream
         self.pool.nbq = 0       # nb queries
 
         secs = self.pool.run(stream, self.queries)
+
+        self.track.register_job_time(self.pool.stream_id, secs)
 
         logging.info(
             "%s: executed %d streams (%d queries) in %gs, using %d CPU",

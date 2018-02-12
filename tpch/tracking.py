@@ -1,5 +1,6 @@
 import os.path
 import psycopg2
+from datetime import datetime
 
 from . import initdb
 from datetime import date, datetime
@@ -7,7 +8,7 @@ from datetime import date, datetime
 SCHEMA = os.path.join(os.path.dirname(__file__), 'tracking.sql')
 
 
-class Results():
+class Tracking():
 
     def __init__(self, conf, system, name):
         self.conf = conf
@@ -16,67 +17,76 @@ class Results():
         self.dsn = self.conf.results.dsn
 
 
-    def register_benchmark(self):
+    def register_benchmark(self, schedule):
         conn = psycopg2.connect(self.dsn)
         curs = conn.cursor()
         sql = """
-insert into run(name, system, setup, start, sf)
-     values (%s, %s, %s, now(), %s)
+insert into run(name, system, setup, schedule, start, sf)
+     values (%s, %s, %s, %s, now(), %s)
   returning id;
 """
         curs.execute(sql, (self.name,
                            self.system,
                            self.conf.to_json(),
+                           schedule,
                            self.conf.scale.factor))
         self.id, = curs.fetchone()
 
         conn.commit()
         return self.id
 
-    def register_load(self, load_name, steps, start, secs, vsecs):
+
+    def register_run_time(self, duration):
         conn = psycopg2.connect(self.dsn)
         curs = conn.cursor()
         sql = """
-insert into load(run, name, steps, start, duration, vacuum_t)
-     values (%s, %s, %s, %s, %s * interval '1 sec', %s * interval '1 sec');
+update run
+   set duration = %s * interval '1 sec'
+ where id = %s
 """
-        curs.execute(sql, (self.id, load_name, steps, start, secs, vsecs))
+        curs.execute(sql, (duration, self.id))
         conn.commit()
         return
 
-    def register_initdb_step(self, load_name, start, secs):
-        conn = psycopg2.connect(self.dsn)
-        curs = conn.cursor()
-        sql = """
-insert into load(run, name, start, duration)
-     values (%s, %s, %s, %s * interval '1 sec');
-"""
-        curs.execute(sql, (self.id, load_name, start, secs))
-        conn.commit()
-        return
 
-    def register_stream(self, stream_name, duration):
+    def register_job(self, job_name, start,
+                     secs=None, steps=None, vsecs=None):
         conn = psycopg2.connect(self.dsn)
         curs = conn.cursor()
         sql = """
-insert into stream(run, name, start, duration)
-     values (%s, %s, now(), %s * interval '1 sec')
+insert into job(run, name, steps, start, duration, vacuum_t)
+     values (%s, %s, %s, %s, %s * interval '1 sec', %s * interval '1 sec')
   returning id;
 """
-        curs.execute(sql, (self.id, stream_name, duration))
-        stream_id, = curs.fetchone()
+        curs.execute(sql, (self.id, job_name, steps, start, secs, vsecs))
+
+        job_id, = curs.fetchone()
 
         conn.commit()
-        return stream_id
+        return job_id
 
-    def register_query_timings(self, stream_id, query_name, duration):
+
+    def register_job_time(self, job_id, duration):
         conn = psycopg2.connect(self.dsn)
         curs = conn.cursor()
         sql = """
-insert into query(stream, name, duration)
+update job
+   set duration = %s * interval '1 sec'
+ where id = %s
+"""
+        curs.execute(sql, (duration, job_id))
+        conn.commit()
+        return
+
+
+    def register_query_timings(self, job_id, query_name, duration):
+        conn = psycopg2.connect(self.dsn)
+        curs = conn.cursor()
+        sql = """
+insert into query(job, name, duration)
      values (%s, %s, %s);
 """
-        curs.execute(sql, (stream_id, query_name, duration))
+        curs.execute(sql, (job_id, query_name, duration))
         conn.commit()
         return
 

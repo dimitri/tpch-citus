@@ -12,7 +12,8 @@ To run the Citus TPC-H benchmark, follow those steps:
   1. Review the target infrastructure setup: `infra.ini`
   2. Start your target testing infrastructure: `make infra`
   3. Manually start a Citus cluster, and register its DSN in `tpch.ini`
-  4. Run the tests
+  4. Register the Citus cluster also as PGSQL DSN
+  5. Run the tests
 
 The tests themselves consist of several units. We're interested in both the
 data loading time and the read-only query performances:
@@ -27,16 +28,78 @@ The concurrent read test here is using `-j4` and thus will run all tests
 concurrently (RDS, Aurora, PgSQL, Citus), thanks to make integrated
 parallelism.
 
+## Running the benchmarks locally
+
+It's possible to use the TPC-H benchmarks driver with a local PostgreSQL
+database, without all the Cloud infrastructure in place. To that end, just
+use the `tpch.py` command directly, without using the `Makefile` based
+infrastructure management.
+
+Here's an example of doing that:
+
+~~~
+$ DSN=postgresql:///tpch ./tpch.py benchmark pgsql --schedule quick
+2018-02-12 11:20:22,544 INFO pgsql: starting benchmark sleep_slowly
+2018-02-12 11:20:22,554 INFO pgsql: starting schedule initdb
+2018-02-12 11:20:22,554 INFO pgsql: initializing the TPC-H schema
+2018-02-12 11:20:22,554 INFO pgsql: create initial schema, pgsql variant
+psql:./schema/cardinalities.sql:1: NOTICE:  view "cardinalities" does not exist, skipping
+2018-02-12 11:20:22,707 INFO pgsql: loading 1 steps of data using 16 CPU: [1]
+2018-02-12 11:20:28,836 INFO pgsql: loaded step 1/100 for Scale Factor 1
+2018-02-12 11:20:28,838 INFO pgsql: vacuum analyze
+2018-02-12 11:20:30,758 INFO pgsql: loaded 1 steps of data in 6.12964s, using 16 CPU
+2018-02-12 11:20:30,759 INFO pgsql: install constraints from 'schema/tpch-pkeys.sql'
+2018-02-12 11:20:30,912 INFO pgsql: install constraints from 'schema/tpch-index.sql'
+2018-02-12 11:20:31,253 INFO pgsql: install constraints from 'schema/tpch-fkeys.sql'
+2018-02-12 11:20:31,379 INFO pgsql: imported 1 initial steps in 8.82457s, using 16 CPU
+2018-02-12 11:20:31,379 INFO pgsql: starting schedule stream
+2018-02-12 11:20:31,379 INFO pgsql: Running TPCH with 16 CPUs for 5s, stream 1 4 6 12
+2018-02-12 11:20:32,518 INFO pgsql: 1 query streams executed in 1.13002s
+2018-02-12 11:20:34,036 INFO pgsql: 17 query streams executed in 2.64805s
+2018-02-12 11:20:35,038 INFO pgsql: 17 query streams executed in 3.64983s
+2018-02-12 11:20:36,575 INFO pgsql: 33 query streams executed in 5.1877s
+2018-02-12 11:20:38,393 INFO pgsql: executed 49 streams (196 queries) in 6.99254s, using 16 CPU
+~~~
+
+To be able to reproduce this locally, you need to firts create a
+`tpch-results` database and configure it in the `tpch.ini` file.
+
 ## Analysing the Results
 
-TODO: collect the results in a PostgreSQL database, then work on some
-tooling to show the data.
+The `tpch.py` benchmark driver collects timings as the benchmark runs in a
+local PostgreSQL database named `tpch-results`. This database is local to
+each loader instance, so an extra step is needed to collect the results
+centrally.
 
-## Load Phases
+Here's the results of running a series of local benchmark as done
+previously, where the name of the run as been assigned as `sleep_slowly`:
+
+~~~
+tpch-results# select system, schedule, job, duration, count
+                from results
+               where run = 'sleep_slowly';
+
+ system │ schedule │          job          │    duration     │ count 
+════════╪══════════╪═══════════════════════╪═════════════════╪═══════
+ pgsql  │ quick    │ drop tables           │ @ 0.060019 secs │     1
+ pgsql  │ quick    │ create tables         │ @ 0.042395 secs │     1
+ pgsql  │ quick    │ initdb                │ @ 6.12964 secs  │     1
+ pgsql  │ quick    │ schema/tpch-pkeys.sql │ @ 0.144589 secs │     1
+ pgsql  │ quick    │ schema/tpch-index.sql │ @ 0.331428 secs │     1
+ pgsql  │ quick    │ schema/tpch-fkeys.sql │ @ 0.11635 secs  │     1
+ pgsql  │ quick    │ stream                │ @ 6.992539 secs │   196
+(7 rows)
+~~~
+
+The `tpch.py` driver is meant to be called on a remote machine, the _loader_
+node, and the DSN is then passed in the environment by the main `Makefile`.
+
+## Benchmark Schedule and Jobs
 
 This benchmark is based on TPC-H and meant to incrementally reach the Scale
 Factor, by implementing the data load in multiple phases. It is possible to
-configure the load phases in the file `tpch.ini`, following this example:
+configure several load phases in the file `tpch.ini`, following this
+example:
 
 ~~~ ini
 [scale]
@@ -44,35 +107,61 @@ cpu = 16
 factor = 300
 children = 100
 
-[load]
-initdb = 1..10
-phase1 = 11..30
-phase2 = 31..100
+[schedule]
+full     = initdb, stream, phase1, stream
+quick    = initdb, stream
+stream   = stream
+
+[initdb]
+type  = load
+steps = 1..10
+
+[phase1]
+type  = load
+steps = 11..30
+
+[phase2]
+type  = load
+steps = 31..100
+cpu   = 2
+
+[stream]
+type     = stream
+queries  = 1 4 6 12
+duration = 5
 ~~~
 
 With such a setup, the target database size is 300 GB (the TPC-H scale
 factor unit is roughly 1GB), and we can load the data using the three phases
-arbitrarily named _initdb_, _phase1_ and _phase2_. To load the _initdb_
-phase on all the tested systems, run the following command on the
-controller:
+arbitrarily named _initdb_, _phase1_ and _phase2_. 
 
-    PHASE=initdb make load
+To run the `full` schedule on all systems in parallel, it's possible to run
+the following command:
+
+    make -j 4 SCHEDULE=full make benchmark
 
 This command then connects to each of the controller nodes for the tested
 systems, and runs the following command there:
 
-    ./tpch.py DSN=... load <system name> initdb
+    DSN=... ./tpch.py benchmark <system name> --name <name> --schedule full
 
-The name _initdb_ is special here in that `tpch.py` recognize it with a
-different meaning as the other arbitrary phase names.
+The _system name_ is going to be replaced by each of the systems considered
+in this benchmark, currently that's _citus, _pgsql_, _rds_, and _aurora_.
+The _name_ of the benchmark is computed once on the controller node (the one
+where you're tying the `make` commands) then the same name is used on every
+node. That allows to then easily merge all the tracked timings to further
+analyze them as part of the same benchmark run and configuration.
+
+Note: the `initdb` job is an hard-coded special job name that does several
+extra things.
 
 ### Initialiazing the TPC-H database
 
-The _initdb_ phase consists of the following actions:
+The _initdb_ job consists of the following actions:
 
   1. create the schema
   2. install the `cardinalities` view, a simple COUNT wrapper
-  3. load the `initdb` phase, see next section
+  3. load the configured steps of data, see next section
   4. install the SQL constraints: primary and foreign keys, and indexes
   5. vacuum analyze the resulting database
 
@@ -91,32 +180,29 @@ consists of a set of steps as per the TPC-H specifications. The steps must
 be a continuous range.
 
 ~~~ ini
-[load]
-initdb = 1..10
-phase1 = 11..30
-phase2 = 31..100
+[phase1]
+type  = load
+steps = 11..30
 ~~~
 
-In this exemple, the `initdb` phase consists of the 10 steps from 1 to 10,
-the `phase1` phase consists of the 20 steps from 11 to 30 and the `phase2`
-step consists of the 70 steps from 31 to 100.
+In this exemple, the `phase1` phase consists of the 20 steps from 11 to 30.
 
 The STEP numbers are used as the `-S` argument to the `dbgen` program. Of
 course, for such a setup to make any sense the steps should all be within
 the range 1..children, with `children` being an option of the `[scale]`
 section in the same `tpch.ini`.
 
-## Concurrency
+### Concurrency
 
 The load phases and the streams are done concurrently with a Python pool of
 processes. The `[scale]` option `cpu` is used to configure how many process
 are being started on the coordinator.
 
-With the previous setup where `cpu = 16`, the `initdb` load phase of steps 1
-to 10 included in going to be ran on the pool of 16 worker process, keeping
-10 of them buzy. The `phase1` phase of steps 11 to 30 included in going to
-use the whole 16 CPUs and some of them, as soon as done with a first step,
-are going to load a second one, until all the steps are loaded.
+With the previous setup where `cpu = 16`, the `phase1` load phase of steps
+11 to 30 included in going to be ran on the pool of 16 worker process, one
+per CPUs. As soon as a worker process is done with a step, the driver starts
+another process load one of the remaining steps, until all the steps are
+loaded.
 
 ## Streaming Queries Concurrently
 
@@ -125,11 +211,12 @@ done in a specified amount of time by the different systems in competition.
 
 ~~~ ini
 [stream]
-queries = 1 4 6 12
-duration = 5
+type     = stream
+queries  = 1 4 6 12
+duration = 600
 ~~~
 
-In this setup, a STREAM consists of running the TPC-H queries 1, then 3,
+In this setup, a STREAM consists of running the TPC-H queries 1, then 4,
 then 6, then 12, in this order, one after the other. As many streams as we
 have CPU in the `[scale]` section are started concurrently, and as soon as a
 stream is done, it is replaced by another one.
@@ -142,9 +229,15 @@ pool waits until the currently running streams are all done.
 Here's a sample output of a query stream ran for 5s on a single CPU:
 
 ~~~
-$ DSN=postgresql:///tpch ./tpch.py stream pg
-Running TPCH on pg with 1 CPUs for 5s, stream 1 3 6 12
-pg: executed 6 streams of 4 queries in 5.1805s, using 1 CPU
+$ DSN=postgresql:///tpch ./tpch.py benchmark pgsql --schedule stream
+2018-02-12 11:34:36,730 INFO pgsql: starting benchmark solve_sometimes
+2018-02-12 11:34:36,739 INFO pgsql: starting schedule stream
+2018-02-12 11:34:36,739 INFO pgsql: Running TPCH with 16 CPUs for 5s, stream 1 4 6 12
+2018-02-12 11:34:37,830 INFO pgsql: 1 query streams executed in 1.07669s
+2018-02-12 11:34:39,396 INFO pgsql: 17 query streams executed in 2.6434s
+2018-02-12 11:34:40,400 INFO pgsql: 17 query streams executed in 3.64771s
+2018-02-12 11:34:41,901 INFO pgsql: 33 query streams executed in 5.14833s
+2018-02-12 11:34:43,581 INFO pgsql: executed 49 streams (196 queries) in 6.81578s, using 16 CPU
 ~~~
 
 ## Usage
@@ -159,22 +252,15 @@ TPC-H benchmark for PostgreSQL and Citus Data
 Use make to drive the benchmark, with the following targets:
 
   help           this help message
-  all            infra initdb stream
   infra          create AWS test infrastructure
   terminate      destroy AWS test infrastructure
   drop           drop TPC-H test tables
 
-  stream         stream-citus stream-pgsql stream-rds stream-aurora 
-  stream-citus   run TPC-H query STREAMs on Citus
-  stream-pgsql   run TPC-H query STREAMs on PostgreSQL
-  stream-rds     run TPC-H query STREAMs on RDS
-  stream-aurora  run TPC-H query STREAMs on Aurora
-
-  load           load-citus load-pgsql load-rds load-aurora 
-  load-citus     run load for env. PHASE on Citus
-  load-psql      run load for env. PHASE on PostgreSQL
-  load-rds       run load for env. PHASE on RDS
-  load-aurora    run load for env. PHASE on Aurora
+  benchmark      bench-citus bench-pgsql bench-rds bench-aurora
+  bench-citus    run the JOB benchmark on the citus system
+  bench-pgsql    run the JOB benchmark on the pgsql system
+  bench-rds      run the JOB benchmark on the rds system
+  bench-aurora   run the JOB benchmark on the aurora system
 
   cardinalities  run SELECT count(*) on all the tables
 ~~~
@@ -253,7 +339,7 @@ implements its action by means of calling into the `Makefile.loader` file,
 with arguments made available on the command line. A typical command run
 from the loader looks like the following:
 
-    DSN=postgresql:///tpch ./tpch.py initdb local
+    DSN=postgresql:///tpch ./tpch.py benchmark pgsql --schedule SCHEDULE
 
 The `tpch.py` tool then reads its `tpch.ini` configuration file that
 contains the benchmarking setup and applies it by calling into the

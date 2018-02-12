@@ -16,6 +16,8 @@ QUERIES  = ../queries/
 DBGEN    = ./dbgen
 QGEN     = DSS_QUERY=$(QUERIES) ./qgen
 PSQL     = psql -X -a -d $(DSN)
+
+PACKAGES = git htop tmux emacs postgresql96* python36 python36-pip
 TABLES   = nation, region, part, supplier, partsupp, customer, orders, lineitem
 VTABLES  = nation region part supplier partsupp customer orders lineitem
 
@@ -23,12 +25,12 @@ all: os repo ;
 
 os:
 	sudo yum -y groupinstall "Development Tools"
-	sudo yum -y install git htop tmux emacs
-	sudo yum -y install postgresql96*
-	sudo yum -y install python36 python36-pip
+	sudo yum -y install $(PACKAGES)
 	./scripts/install-local-pgsql.sh
+	psql -v ON_ERROR_STOP=1 -f tracking.sql -d tpch-results
 
 tools:
+	sudo pip-3.6 install -r requirements.txt
 	make -C $(TPCH_SRC) clean all
 
 schema:

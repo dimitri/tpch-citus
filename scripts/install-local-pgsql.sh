@@ -13,6 +13,7 @@ else
     sudo service postgresql96 start
     sudo su - postgres -c "createuser ec2-user"
     sudo su - postgres -c "createdb -O ec2-user tpch-results"
+    pg_isready -d tpch-results
 fi
 
 

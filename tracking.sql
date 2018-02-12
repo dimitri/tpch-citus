@@ -43,6 +43,7 @@ create or replace view results
     as
      select run.name as run,
             run.system as system,
+            run.schedule as schedule,
             job.name as job,
             job.start,
             job.duration,

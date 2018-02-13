@@ -8,7 +8,7 @@ from . import utils
 Scale   = namedtuple('Scale', 'cpu factor children')
 Stream  = namedtuple('Stream', 'queries duration cpu')
 Load    = namedtuple('Load', 'scale_factor children steps cpu')
-Schema  = namedtuple('Schema', 'tables constraints drop')
+Schema  = namedtuple('Schema', 'tables constraints drop vacuum')
 Results = namedtuple('Results', 'dsn')
 
 
@@ -62,14 +62,16 @@ class Setup():
                     self.jobs[section] = job
 
         self.pgsql = Schema(
-            tables = self.conf.get('pgsql', 'tables'),
+            tables      = self.conf.get('pgsql', 'tables'),
             constraints = self.conf.get('pgsql', 'constraints').split(' '),
-            drop = self.conf.get('pgsql', 'drop'))
+            drop        = self.conf.get('pgsql', 'drop'),
+            vacuum      = self.conf.get('pgsql', 'vacuum'))
 
         self.citus = Schema(
-            tables = self.conf.get('citus', 'tables'),
+            tables      = self.conf.get('citus', 'tables'),
             constraints = self.conf.get('citus', 'constraints').split(' '),
-            drop = self.conf.get('pgsql', 'drop'))
+            drop        = self.conf.get('pgsql', 'drop'),
+            vacuum      = self.conf.get('pgsql', 'vacuum'))
 
         self.results = Results(dsn = self.conf.get('results', 'dsn'))
 

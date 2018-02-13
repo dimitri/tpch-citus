@@ -25,10 +25,7 @@ create table if not exists job
    name      text not null,
    start     timestamptz not null,
    duration  interval,
-   vacuum_t  interval,
-   steps     integer[],
-
-   unique(run, name)
+   steps     integer[]
  );
 
 create table if not exists query

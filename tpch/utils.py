@@ -1,9 +1,31 @@
 import sys
+import time
 import shlex
 import subprocess
 import os.path
 import random
 import logging
+import datetime
+
+
+MAKEFILE      = os.path.join(os.path.dirname(__file__), '..', 'Makefile.loader')
+SCHEMA        = 'make -f %s DSN=%s SCHEMA=%s schema'
+
+
+def run_schema_file(dsn, filename, debug=False):
+    now = datetime.datetime.now()
+    start = time.monotonic()
+
+    out = run_command(SCHEMA % (MAKEFILE, dsn, filename))
+
+    if debug:
+        for line in out:
+            logger = logging.getLogger('TPCH')
+            logger.debug(line)
+
+    secs = time.monotonic() - start
+
+    return now, secs
 
 
 def run_command(command, verbose=False):

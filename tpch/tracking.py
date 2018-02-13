@@ -46,16 +46,15 @@ update run
         conn.commit()
         return
 
-    def register_job(self, job_name, start,
-                     secs=None, steps=None, vsecs=None):
+    def register_job(self, job_name, start, secs=None, steps=None):
         conn = psycopg2.connect(self.dsn)
         curs = conn.cursor()
         sql = """
-insert into job(run, name, steps, start, duration, vacuum_t)
-     values (%s, %s, %s, %s, %s * interval '1 sec', %s * interval '1 sec')
+insert into job(run, name, steps, start, duration)
+     values (%s, %s, %s, %s, %s * interval '1 sec')
   returning id;
 """
-        curs.execute(sql, (self.id, job_name, steps, start, secs, vsecs))
+        curs.execute(sql, (self.id, job_name, steps, start, secs))
 
         job_id, = curs.fetchone()
 

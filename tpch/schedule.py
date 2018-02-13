@@ -3,7 +3,7 @@ import time
 from . import utils
 from .load import Load
 from .stream import Stream
-from .initdb import InitDB, run_schema_file
+from .initdb import InitDB
 from .tracking import Tracking
 
 
@@ -12,10 +12,19 @@ class Schedule():
         self.dsn = dsn
         self.conf = conf
         self.system = system
-        self.kind = kind
 
         self.track = None
         self.logger = logger
+
+        self.init_schema_files(kind)
+
+    def init_schema_files(self, kind='pgsql'):
+        if kind == 'pgsql':
+            self.schema = self.conf.pgsql
+        elif kind == 'citus':
+            self.schema = self.conf.citus
+        else:
+            raise ValueError
 
     def run(self, name, schedule='schedule'):
         self.name = name
@@ -37,8 +46,8 @@ class Schedule():
 
             # We have some hard-coded schedule phase names
             if phase == 'initdb':
-                initdb = InitDB(self.dsn, self.conf, self.logger, self.track,
-                                kind=self.kind)
+                initdb = InitDB(self.dsn, self.conf, self.schema,
+                                self.logger, self.track)
                 initdb.run(self.system)
 
             else:
@@ -50,7 +59,8 @@ class Schedule():
                     cmd.run(self.system, phase)
 
                 elif type(job).__name__ == 'Load':
-                    cmd = Load(job, self.dsn, self.logger, self.track)
+                    cmd = Load(job,
+                               self.dsn, self.schema, self.logger, self.track)
                     cmd.run(self.system, phase)
 
                 else:

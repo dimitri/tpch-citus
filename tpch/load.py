@@ -28,13 +28,14 @@ class DistributedLoad(DistributedTasks):
 
 
 class Load():
-    def __init__(self, conf, dsn, logger, track):
+    def __init__(self, conf, dsn, schema, logger, track):
         # conf is expected to be a Load namedtuple, see setup.py
         # extra code so that we can "walk like a duck" if needed
         self.dsn = dsn
         self.conf = conf
         self.steps = self.conf.steps
         self.cpu = self.conf.cpu
+        self.schema = schema
 
         self.track = track
         self.logger = logger
@@ -62,22 +63,15 @@ class Load():
             self.conf.scale_factor,
             self.conf.children
         )
-        vsecs = self.vacuum()
-
-        self.track.register_job(phase, start=start,
-                                secs=secs, vsecs=vsecs, steps=self.steps)
-
-        self.logger.info("%s: loaded %d steps of data in %gs, using %d CPU",
-                         system, len(self.steps), secs, self.cpu)
-        return
-
-    def vacuum(self):
-        start = time.monotonic()
+        self.track.register_job(phase, start=start, secs=secs, steps=self.steps)
 
         self.logger.info("%s: vacuum analyze", self.system)
-        out = utils.run_command(VACUUM % (MAKEFILE, self.dsn))
+        vstart, vsecs = utils.run_schema_file(self.dsn, self.schema.vacuum)
+        self.track.register_job("vacuum analyze", start=vstart, secs=vsecs)
 
-        for line in out:
-            self.logger.debug(line)
-
-        return time.monotonic() - start
+        self.logger.info("%s: loaded %d steps of data in %gs, using %d CPU",
+                         system,
+                         len(self.steps),
+                         secs,
+                         self.cpu)
+        return

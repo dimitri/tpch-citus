@@ -13,7 +13,10 @@ SCHEDULE ?= full
 NAME    = aws.out/name.txt
 BNAME   = $(shell cat $(NAME))
 
+# LOGFILE is on the (remote) loaders, LOGDIR is local to the controller
 LOGFILE = ./tpch.out
+DUMP    = ./tpch-results.dump
+LOGDIR  = ./logs/$(shell date "+%Y%m%d")_$(BNAME)
 
 INFRA   = ./infra.py --config ./infra.ini
 WAIT    = $(INFRA) ec2 wait --json
@@ -28,8 +31,10 @@ RSYNC   = rsync -e "ssh -o StrictHostKeyChecking=no" -avz $(RSOPTS)
 #
 rsync = $(RSYNC) ./ ec2-user@$(shell $(WAIT) $(1)):tpch/
 ssh   = ssh -l ec2-user $(shell $(WAIT) $(1))
-rmake = $(call ssh,$(1)) "cd tpch && /usr/bin/time -p make DSN=$(shell $(DSN) $(2)) $(4) -f Makefile.loader $(3)"
+scp   = scp ec2-user@$(shell $(WAIT) $(1)):$(2)
+rmake = $(call ssh,$(1)) "cd tpch && make DSN=$(shell $(DSN) $(2)) -f Makefile.loader $(3)"
 tpch  = $(call ssh,$(1)) LC_ALL=en_US.utf8 ./tpch/tpch.py $(3) --name $(BNAME) --schedule $(SCHEDULE) --log $(LOGFILE) --dsn $(shell $(DSN) $(2)) --detach
+
 
 .SILENT: help
 help:
@@ -49,6 +54,8 @@ help:
 	echo "  bench-aurora   run given SCHEDULE on the aurora system"
 	echo
 	echo "  tail-f         see logs from currently running benchmark"
+	echo "  fetch-logs     fetch logs in ./logs/YYYYMMDD_name/system.log"
+	echo "  dump-results   dump results in ./logs/YYYYMMDD_name/system.dump"
 	echo
 	echo "  cardinalities  run SELECT count(*) on all the tables"
 
@@ -61,9 +68,11 @@ $(NAME):
 
 bench-citus: loader-citus
 	$(call tpch,$(CITUS_LOADER),$(CITUS),benchmark citus --kind citus)
+	$(call ssh,$(CITUS_LOADER)) tail -f $(LOGFILE)
 
 bench-pgsql: loader-pgsql
 	$(call tpch,$(PGSQL_LOADER),$(PGSQL),benchmark pgsql)
+	$(call ssh,$(PGSQL_LOADER)) tail -f $(LOGFILE)
 
 bench-rds: loader-rds rds
 	$(call tpch,$(RDS_LOADER),$(RDS),benchmark rds)
@@ -75,11 +84,54 @@ bench-aurora: loader-aurora aurora
 
 tail-f: tail-f-citus tail-f-pgsql tail-f-rds tail-f-aurora ;
 
+tail-f-citus:
+	$(call ssh,$(CITUS_LOADER)) tail -f $(LOGFILE)
+
+tail-f-pgsql:
+	$(call ssh,$(PGSQL_LOADER)) tail -f $(LOGFILE)
+
 tail-f-rds:
 	$(call ssh,$(RDS_LOADER)) tail -f $(LOGFILE)
 
 tail-f-aurora:
 	$(call ssh,$(AURORA_LOADER)) tail -f $(LOGFILE)
+
+
+fetch-logs: fetch-logs-citus fetch-logs-pgsql fetch-logs-rds fetch-logs-aurora
+
+fetch-logs-citus:
+	mkdir -p $(LOGDIR)
+	$(call scp,$(CITUS_LOADER),$(LOGFILE)) $(LOGDIR)/citus.log
+
+fetch-logs-pgsql:
+	mkdir -p $(LOGDIR)
+	$(call scp,$(PGSQL_LOADER),$(LOGFILE)) $(LOGDIR)/pgsql.log
+
+fetch-logs-rds:
+	mkdir -p $(LOGDIR)
+	$(call scp,$(RDS_LOADER),$(LOGFILE)) $(LOGDIR)/rds.log
+
+fetch-logs-aurora:
+	mkdir -p $(LOGDIR)
+	$(call scp,$(AURORA_LOADER),$(LOGFILE)) $(LOGDIR)/aurora.log
+
+dump-results: dump-results-rds dump-results-aurora
+
+dump-results-citus:
+	$(call rmake,$(CITUS_LOADER),$(CITUS),dump)
+	$(call scp,$(CITUS_LOADER),$(DUMP)) $(LOGDIR)/citus.dump
+
+dump-results-pgsql:
+	$(call rmake,$(PGSQL_LOADER),$(PGSQL),dump)
+	$(call scp,$(PGSQL_LOADER),$(DUMP)) $(LOGDIR)/pgsql.dump
+
+dump-results-rds:
+	$(call rmake,$(RDS_LOADER),$(RDS),dump)
+	$(call scp,$(RDS_LOADER),$(DUMP)) $(LOGDIR)/rds.dump
+
+dump-results-aurora:
+	$(call rmake,$(AURORA_LOADER),$(AURORA),dump)
+	$(call scp,$(AURORA_LOADER),$(DUMP)) $(LOGDIR)/aurora.dump
 
 
 infra: rds aurora loaders ;
@@ -137,9 +189,6 @@ psql-aurora:
 	$(call ssh,$(AURORA_LOADER)) "psql -d $(shell $(DSN) $(AURORA))"
 
 cardinalities:
-	$(call rmake,$(RDS_LOADER),$(RDS),cardinalities)
-	$(call rmake,$(AURORA_LOADER),$(AURORA),cardinalities)
-	DSN=$(PGSQL) $(MAKE) -f Makefile.loader cardinalities
 	DSN=$(CITUS) $(MAKE) -f Makefile.loader cardinalities
 
 status:
@@ -177,4 +226,7 @@ pycodestyle:
 .PHONY: becnhmark bench-rds bench-aurora bench-pgsql bench-citus
 .PHONY: shell-rds shell-aurora psql-rds psql-aurora
 .PHONY: terminate terminate-loaders
+.PHONY: fetch-logs dump-results
+.PHONY: fetch-logs-citus fetch-logs-pgsql fetch-logs-rds fetch-logs-aurora
+.PHONY: dump-results-citus dump-results-pgsql dump-results-rds dump-results-aurora
 .PHONY: list-zones list-amis pep8 pycodestyle

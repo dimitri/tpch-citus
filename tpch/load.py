@@ -63,7 +63,8 @@ class Load():
             self.conf.scale_factor,
             self.conf.children
         )
-        self.track.register_job(phase, start=start, secs=secs, steps=self.steps)
+        self.track.register_job(
+            phase, start=start, secs=secs, steps=self.steps)
 
         self.logger.info("%s: vacuum analyze", self.system)
         vstart, vsecs = utils.run_schema_file(self.dsn, self.schema.vacuum)

@@ -8,8 +8,8 @@ import logging
 import datetime
 
 
-MAKEFILE      = os.path.join(os.path.dirname(__file__), '..', 'Makefile.loader')
-SCHEMA        = 'make -f %s DSN=%s SCHEMA=%s schema'
+MAKEFILE  = os.path.join(os.path.dirname(__file__), '..', 'Makefile.loader')
+SCHEMA    = 'make -f %s DSN=%s SCHEMA=%s schema'
 
 
 def run_schema_file(dsn, filename, debug=False):

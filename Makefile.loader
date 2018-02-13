@@ -26,7 +26,7 @@ os:
 	sudo yum -q -y install $(PACKAGES)
 	sudo localedef -i en_US -f UTF-8 en_US.UTF-8
 	./scripts/install-local-pgsql.sh
-	psql -v ON_ERROR_STOP=1 -f tracking.sql -d tpch-results
+	psql -v ON_ERROR_STOP=1 -f schema/tracking.sql -d tpch-results
 
 tools:
 	sudo pip-3.6 install -r requirements.txt

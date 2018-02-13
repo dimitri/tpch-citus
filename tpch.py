@@ -7,6 +7,7 @@ import logging
 
 from service import find_syslog, Service
 
+from tpch import logs
 from tpch import utils
 from tpch import setup
 from tpch.schedule import Schedule
@@ -47,18 +48,12 @@ def benchmark(system, name, schedule, kind, dsn, ini, log, debug, detach):
     name = name or utils.compose_name()
     conf = setup.Setup(ini)
 
-    logger = logging.getLogger('TPCH')
-    llevel = logging.INFO
-    lfmter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    level = logging.INFO
     if debug:
-        llevel = logging.DEBUG
+        level = logging.DEBUG
 
-    logger.setLevel(llevel)
-
-    fh = logging.FileHandler(log, 'w')
-    fh.setLevel(llevel)
-    fh.setFormatter(lfmter)
-    logger.addHandler(fh)
+    logger = logs.logger(level)
+    logs.setup_file_logger(logger, log, level)
 
     if detach:
         tpch = TpchService('TPCH', pid_dir='/tmp')
@@ -67,11 +62,7 @@ def benchmark(system, name, schedule, kind, dsn, ini, log, debug, detach):
         tpch.schedule = schedule
         tpch.start()
     else:
-        ch = logging.StreamHandler(sys.stdout)
-        ch.setLevel(llevel)
-        ch.setFormatter(lfmter)
-        logger.addHandler(ch)
-
+        logs.setup_stdout_logger(logger, level)
         bench = Schedule(conf, system, logger, dsn, kind=kind)
         bench.run(name, schedule)
 

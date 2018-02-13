@@ -16,6 +16,15 @@ class Tracking():
         self.name = name
         self.dsn = self.conf.results.dsn
 
+    def fetch_benchmark_id(self):
+        conn = psycopg2.connect(self.dsn)
+        curs = conn.cursor()
+        sql = 'select id from run where name = %s'
+        curs.execute(sql, (self.name,))
+        self.id, = curs.fetchone()
+        conn.commit()
+        return self.id
+
     def register_benchmark(self, schedule):
         conn = psycopg2.connect(self.dsn)
         curs = conn.cursor()

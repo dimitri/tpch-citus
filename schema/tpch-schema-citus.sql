@@ -22,7 +22,7 @@ select create_reference_table('region');
 
 CREATE TABLE part
 (
-    p_partkey     INTEGER not null,
+    p_partkey     BIGINT not null,
     p_name        VARCHAR(55) not null,
     p_mfgr        CHAR(25) not null,
     p_brand       CHAR(10) not null,
@@ -38,7 +38,7 @@ select create_distributed_table('part', 'p_partkey');
 
 CREATE TABLE supplier
 (
-    s_suppkey     INTEGER not null,
+    s_suppkey     BIGINT not null,
     s_name        CHAR(25) not null,
     s_address     VARCHAR(40) not null,
     s_nationkey   INTEGER not null,
@@ -52,9 +52,9 @@ select create_reference_table('supplier');
 
 CREATE TABLE partsupp
 (
-    ps_partkey     INTEGER not null,
-    ps_suppkey     INTEGER not null,
-    ps_availqty    INTEGER not null,
+    ps_partkey     BIGINT not null,
+    ps_suppkey     BIGINT not null,
+    ps_availqty    BIGINT not null,
     ps_supplycost  DOUBLE PRECISION  not null,
     ps_comment     VARCHAR(199) not null
 );

@@ -71,7 +71,7 @@ bench-rds: loader-rds rds
 
 bench-aurora: loader-aurora aurora
 	$(call tpch,$(AURORA_LOADER),$(AURORA),benchmark aurora)
-	$(call ssh,$(RDS_LOADER)) tail -f $(LOGFILE)
+	$(call ssh,$(AURORA_LOADER)) tail -f $(LOGFILE)
 
 tail-f: tail-f-citus tail-f-pgsql tail-f-rds tail-f-aurora ;
 

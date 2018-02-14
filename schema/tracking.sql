@@ -91,4 +91,40 @@ create or replace view qpm as
      order by run.id, job.start;
 
 
+create or replace view query_timings as
+     with perc_arrays as (
+         select run.system as system,
+                job.id as job,
+                job.name as jobname,
+                sf.sf,
+                query.name as query,
+                avg(query.duration) as average,
+                percentile_cont(array[0.5, 0.9, 0.95, 0.98, 0.99])
+                   within group(order by query.duration) as pct
+           from query
+                join job on query.job = job.id
+                join run on job.run = run.id
+                left join lateral
+                (
+                  select steps[array_upper(steps, 1)] as sf
+                    from job sf
+                   where sf.id < job.id
+                     and steps is not null
+                order by sf.id desc
+                   limit 1
+                )
+                as sf on true
+       group by run.id, sf.sf, job.id, query.name
+    )
+    select system, sf, jobname, query,
+           average,
+           pct[1] as median,
+           pct[2] as "90%",
+           pct[3] as "95%",
+           pct[4] as "98%",
+           pct[5] as "99%"
+      from perc_arrays
+     order by system, sf, job, query;
+
+
 commit;

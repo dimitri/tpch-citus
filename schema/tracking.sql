@@ -98,6 +98,7 @@ create or replace view query_timings as
                 job.name as jobname,
                 sf.sf,
                 query.name as query,
+                count(*) as count,
                 avg(query.duration) as average,
                 percentile_cont(array[0.5, 0.9, 0.95, 0.98, 0.99])
                    within group(order by query.duration) as pct
@@ -116,7 +117,7 @@ create or replace view query_timings as
                 as sf on true
        group by run.id, sf.sf, job.id, query.name
     )
-    select system, sf, jobname, query,
+    select system, sf, jobname, query, count,
            average,
            pct[1] as median,
            pct[2] as "90%",

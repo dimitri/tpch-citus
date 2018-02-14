@@ -1,5 +1,6 @@
 .git
 __pycache__
+logs/*
 tpch-pg/src/*.o
 tpch-pg/src/qgen
 tpch-pg/src/dbgen

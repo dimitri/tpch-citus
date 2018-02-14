@@ -15,7 +15,6 @@ BNAME   = $(shell cat $(NAME))
 
 # LOGFILE is on the (remote) loaders, LOGDIR is local to the controller
 LOGFILE = ./tpch.out
-DUMP    = ./tpch-results.dump
 LOGDIR  = ./logs/$(shell date "+%Y%m%d")_$(BNAME)
 
 INFRA   = ./infra.py --config ./infra.ini
@@ -25,6 +24,8 @@ PGSQL   = $(shell $(INFRA) pgsql dsn)
 CITUS   = $(shell $(INFRA) citus dsn)
 RSOPTS  = --exclude-from 'rsync.exclude'
 RSYNC   = rsync -e "ssh -o StrictHostKeyChecking=no" -avz $(RSOPTS)
+
+RESULTS_DSN = postgresql://dim@localhost/tpch-results
 
 #
 # Make commands to help write targets
@@ -56,6 +57,7 @@ help:
 	echo "  tail-f         see logs from currently running benchmark"
 	echo "  fetch-logs     fetch logs in ./logs/YYYYMMDD_name/system.log"
 	echo "  dump-results   dump results in ./logs/YYYYMMDD_name/system.dump"
+	echo "  merge-results  merge the results into the RESULTS_DSN database"
 	echo
 	echo "  cardinalities  run SELECT count(*) on all the tables"
 
@@ -71,7 +73,7 @@ bench-citus: loader-citus
 	$(call ssh,$(CITUS_LOADER)) tail -f $(LOGFILE)
 
 bench-pgsql: loader-pgsql
-	$(call tpch,$(PGSQL_LOADER),$(PGSQL),benchmark pgsql)
+	$(call tpch,$(PGSQL_LOADER),$(PGSQL),benchmark citus-single-node --kind citus)
 	$(call ssh,$(PGSQL_LOADER)) tail -f $(LOGFILE)
 
 bench-rds: loader-rds rds
@@ -97,7 +99,7 @@ tail-f-aurora:
 	$(call ssh,$(AURORA_LOADER)) tail -f $(LOGFILE)
 
 
-fetch-logs: fetch-logs-citus fetch-logs-pgsql fetch-logs-rds fetch-logs-aurora
+fetch-logs: fetch-logs-citus fetch-logs-pgsql fetch-logs-rds fetch-logs-aurora ;
 
 fetch-logs-citus:
 	mkdir -p $(LOGDIR)
@@ -115,23 +117,49 @@ fetch-logs-aurora:
 	mkdir -p $(LOGDIR)
 	$(call scp,$(AURORA_LOADER),$(LOGFILE)) $(LOGDIR)/aurora.log
 
-dump-results: dump-results-rds dump-results-aurora
+dump-results: dump-results-citus dump-results-pgsql dump-results-rds dump-results-aurora ;
 
 dump-results-citus:
 	$(call rmake,$(CITUS_LOADER),$(CITUS),dump)
-	$(call scp,$(CITUS_LOADER),$(DUMP)) $(LOGDIR)/citus.dump
+	$(call scp,$(CITUS_LOADER),*.copy) /tmp
+	mv /tmp/run.copy $(LOGDIR)/citus.run.copy
+	mv /tmp/job.copy $(LOGDIR)/citus.job.copy
+	mv /tmp/query.copy $(LOGDIR)/citus.query.copy
 
 dump-results-pgsql:
 	$(call rmake,$(PGSQL_LOADER),$(PGSQL),dump)
-	$(call scp,$(PGSQL_LOADER),$(DUMP)) $(LOGDIR)/pgsql.dump
+	$(call scp,$(PGSQL_LOADER),*.copy) /tmp
+	mv /tmp/run.copy $(LOGDIR)/pgsql.run.copy
+	mv /tmp/job.copy $(LOGDIR)/pgsql.job.copy
+	mv /tmp/query.copy $(LOGDIR)/pgsql.query.copy
 
 dump-results-rds:
 	$(call rmake,$(RDS_LOADER),$(RDS),dump)
-	$(call scp,$(RDS_LOADER),$(DUMP)) $(LOGDIR)/rds.dump
+	$(call scp,$(RDS_LOADER),*.copy) /tmp
+	mv /tmp/run.copy $(LOGDIR)/rds.run.copy
+	mv /tmp/job.copy $(LOGDIR)/rds.job.copy
+	mv /tmp/query.copy $(LOGDIR)/rds.query.copy
 
 dump-results-aurora:
 	$(call rmake,$(AURORA_LOADER),$(AURORA),dump)
-	$(call scp,$(AURORA_LOADER),$(DUMP)) $(LOGDIR)/aurora.dump
+	$(call scp,$(AURORA_LOADER),*.copy) /tmp
+	mv /tmp/run.copy $(LOGDIR)/aurora.run.copy
+	mv /tmp/job.copy $(LOGDIR)/aurora.job.copy
+	mv /tmp/query.copy $(LOGDIR)/aurora.query.copy
+
+merge-results: merge-results-citus merge-results-pgsql merge-results-rds merge-results-aurora ;
+
+merge-results-citus:
+	./scripts/merge-results.sh $(RESULTS_DSN) citus $(LOGDIR)
+
+merge-results-pgsql:
+	./scripts/merge-results.sh $(RESULTS_DSN) pgsql $(LOGDIR)
+
+merge-results-rds:
+	./scripts/merge-results.sh $(RESULTS_DSN) rds $(LOGDIR)
+
+merge-results-aurora:
+	./scripts/merge-results.sh $(RESULTS_DSN) aurora $(LOGDIR)
 
 
 infra: rds aurora loaders ;
@@ -226,7 +254,8 @@ pycodestyle:
 .PHONY: becnhmark bench-rds bench-aurora bench-pgsql bench-citus
 .PHONY: shell-rds shell-aurora psql-rds psql-aurora
 .PHONY: terminate terminate-loaders
-.PHONY: fetch-logs dump-results
+.PHONY: fetch-logs dump-results merge-results
 .PHONY: fetch-logs-citus fetch-logs-pgsql fetch-logs-rds fetch-logs-aurora
 .PHONY: dump-results-citus dump-results-pgsql dump-results-rds dump-results-aurora
+.PHONY: merge-results-citus merge-results-pgsql merge-results-rds merge-results-aurora
 .PHONY: list-zones list-amis pep8 pycodestyle

@@ -253,10 +253,15 @@ Use make to drive the benchmark, with the following targets:
   drop           drop TPC-H test tables
 
   benchmark      bench-citus bench-pgsql bench-rds bench-aurora
-  bench-citus    run the JOB benchmark on the citus system
-  bench-pgsql    run the JOB benchmark on the pgsql system
-  bench-rds      run the JOB benchmark on the rds system
-  bench-aurora   run the JOB benchmark on the aurora system
+  bench-citus    run given SCHEDULE on the citus system
+  bench-pgsql    run given SCHEDULE on the pgsql system
+  bench-rds      run given SCHEDULE on the rds system
+  bench-aurora   run given SCHEDULE on the aurora system
+
+  tail-f         see logs from currently running benchmark
+  fetch-logs     fetch logs in ./logs/YYYYMMDD_name/system.log
+  dump-results   dump results in ./logs/YYYYMMDD_name/system.dump
+  merge-results  merge the results into the RESULTS_DSN database
 
   cardinalities  run SELECT count(*) on all the tables
 ~~~

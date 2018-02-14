@@ -14,7 +14,9 @@ QUERIES  = ../queries/
 DBGEN    = ./dbgen
 QGEN     = DSS_QUERY=$(QUERIES) ./qgen
 PSQL     = psql -X -a -d $(DSN)
-DUMP     = $(TOP)/../tpch-results.dump
+
+COPY_DIR = $(TOP)/../
+PSQL_RES = psql -X -d tpch-results
 
 PACKAGES = git htop tmux emacs postgresql96* python36 python36-devel python36-pip
 TABLES   = nation, region, part, supplier, partsupp, customer, orders, lineitem
@@ -62,7 +64,9 @@ drop:
 	$(PSQL) -c 'drop table $(TABLES) cascade;'
 
 dump:
-	pg_dump -Fc -f $(DUMP) tpch-results
+	$(PSQL_RES) -c 'copy run to stdout;' > $(COPY_DIR)/run.copy
+	$(PSQL_RES) -c 'copy job to stdout;' > $(COPY_DIR)/job.copy
+	$(PSQL_RES) -c 'copy query to stdout;' > $(COPY_DIR)/query.copy
 
 .PHONY: dbgen repo os load stream refresh drop
 .PHONY: schema constraints vacuum

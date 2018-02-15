@@ -94,7 +94,7 @@ class Schedule():
 
             elif phase == 'initdb':
                 # The initial phase name is hard-coded
-                initdb = InitDB(self.dsn, self.conf, self.schema,
+                initdb = InitDB(self.conf, self.dsn, self.schema,
                                 self.logger, self.track)
                 initdb.run(self.system)
 

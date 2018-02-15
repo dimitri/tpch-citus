@@ -12,7 +12,7 @@ MAKEFILE  = os.path.join(os.path.dirname(__file__), '..', 'Makefile.loader')
 SCHEMA    = 'make -f %s DSN=%s SCHEMA=%s schema'
 
 
-def run_schema_file(dsn, filename, logger, debug=False):
+def run_schema_file(dsn, filename, system, logger, debug=False):
     now = datetime.datetime.now()
     start = time.monotonic()
 
@@ -21,12 +21,13 @@ def run_schema_file(dsn, filename, logger, debug=False):
 
     if err:
         logger.error(command)
-        for line in err:
-            logger.error(line)
-
-    if debug:
         for line in out:
-            logger.debug(line)
+            logger.debug('%s: %s', system, line)
+
+        for line in err:
+            logger.error('%s: %s', system, line)
+
+        raise RuntimeError(filename)
 
     secs = time.monotonic() - start
 

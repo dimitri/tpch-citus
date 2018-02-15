@@ -6,12 +6,13 @@ from datetime import datetime
 
 from . import utils
 from .task_pool import TaskPool
+from .helpers import TpchComponent
 
 MAKEFILE = os.path.join(os.path.dirname(__file__), '..', 'Makefile.loader')
 STREAM = "make -f %s DSN=%s STREAM='%s' stream"
 
 
-def stream(dsn, queries):
+def stream(dsn, queries, system):
     command = STREAM % (MAKEFILE, dsn, queries)
     out, err = utils.run_command(command)
 
@@ -19,7 +20,7 @@ def stream(dsn, queries):
         logger = logging.getLogger('TPCH')
         logger.error(command)
         for line in err:
-            logger.error(line)
+            logger.error('%s %s', system, line)
 
     return utils.parse_psql_timings(queries, out)
 
@@ -38,18 +39,14 @@ class StreamTaskPool(TaskPool):
             self.track.register_query_timings(self.stream_id, name, duration)
 
 
-class Stream():
+class Stream(TpchComponent):
     def __init__(self, conf, dsn, logger, track):
+        super().__init__(conf, dsn, logger, track)
         # conf is expected to be a Stream namedtuple, see setup.py
         # extra code so that we can "walk like a duck" if needed
-        self.dsn = dsn
-        self.conf = conf
         self.queries = self.conf.queries
         self.duration = self.conf.duration
         self.cpu = self.conf.cpu
-
-        self.track = track
-        self.logger = logger
 
         pause = 60
         if self.duration < 90:
@@ -64,8 +61,9 @@ class Stream():
         DURATION in minutes.
 
         """
-        self.logger.info("%s: Running TPCH with %d CPUs for %ds, stream %s",
-                         system, self.cpu, self.duration, self.queries)
+        self.system = system
+        self.log("Running TPCH with %d CPUs for %ds, stream %s",
+                 self.cpu, self.duration, self.queries)
 
         start = datetime.now()
 
@@ -74,11 +72,9 @@ class Stream():
         self.pool.nbs = 0       # nb stream
         self.pool.nbq = 0       # nb queries
 
-        secs = self.pool.run(stream, self.dsn, self.queries)
-
+        secs = self.pool.run(stream, self.dsn, self.queries, self.system)
         self.track.register_job_time(self.pool.stream_id, secs)
 
-        self.logger.info(
-            "%s: executed %d streams (%d queries) in %gs, using %d CPU",
-            system, self.pool.nbs, self.pool.nbq, secs, self.cpu)
+        self.log("executed %d streams (%d queries) in %gs, using %d CPU",
+                 self.pool.nbs, self.pool.nbq, secs, self.cpu)
         return

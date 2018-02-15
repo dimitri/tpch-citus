@@ -1,6 +1,6 @@
 begin;
 
-set client_min_messages to error;
+set local client_min_messages to error;
 
 drop view if exists cardinalities;
 

@@ -40,11 +40,11 @@ class InitDB():
 
         for schema, name in [(self.schema.drop, "drop tables"),
                              (self.schema.tables, "create tables")]:
-            sstart, ssecs = utils.run_schema_file(self.dsn, schema)
+            sstart, ssecs = utils.run_schema_file(self.dsn, schema, self.logger)
             self.track.register_job(name, start=sstart, secs=ssecs)
 
         # don't track installing the cardinalities view...
-        utils.run_schema_file(self.dsn, CARDINALITIES)
+        utils.run_schema_file(self.dsn, CARDINALITIES, self.logger)
 
         # self.load.run() is verbose already
         # It loads the data and does the VACUUM ANALYZE on each table
@@ -52,7 +52,9 @@ class InitDB():
 
         self.logger.info("%s: install pkeys and fkeys", system)
         for sqlfile in self.schema.constraints:
-            cstart, csecs = utils.run_schema_file(self.dsn, sqlfile)
+            cstart, csecs = utils.run_schema_file(self.dsn,
+                                                  sqlfile,
+                                                  self.logger)
             self.track.register_job(sqlfile, start=cstart, secs=csecs)
 
         end = time.monotonic()

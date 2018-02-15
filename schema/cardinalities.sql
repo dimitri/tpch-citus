@@ -1,3 +1,7 @@
+begin;
+
+set client_min_messages to error;
+
 drop view if exists cardinalities;
 
 create view cardinalities as
@@ -11,3 +15,4 @@ create view cardinalities as
   (select count(*) from nation)    as nation,
   (select count(*) from region)    as region;
   
+commit;

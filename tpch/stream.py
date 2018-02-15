@@ -12,8 +12,16 @@ STREAM = "make -f %s DSN=%s STREAM='%s' stream"
 
 
 def stream(dsn, queries):
-    output = utils.run_command(STREAM % (MAKEFILE, dsn, queries))
-    return utils.parse_psql_timings(queries, output)
+    command = STREAM % (MAKEFILE, dsn, queries)
+    out, err = utils.run_command(command)
+
+    if err:
+        logger = logging.getLogger('TPCH')
+        logger.error(command)
+        for line in err:
+            logger.error(line)
+
+    return utils.parse_psql_timings(queries, out)
 
 
 class StreamTaskPool(TaskPool):

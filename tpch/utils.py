@@ -12,15 +12,20 @@ MAKEFILE  = os.path.join(os.path.dirname(__file__), '..', 'Makefile.loader')
 SCHEMA    = 'make -f %s DSN=%s SCHEMA=%s schema'
 
 
-def run_schema_file(dsn, filename, debug=False):
+def run_schema_file(dsn, filename, logger, debug=False):
     now = datetime.datetime.now()
     start = time.monotonic()
 
-    out = run_command(SCHEMA % (MAKEFILE, dsn, filename))
+    command = SCHEMA % (MAKEFILE, dsn, filename)
+    out, err = run_command(command)
+
+    if err:
+        logger.error(command)
+        for line in err:
+            logger.error(line)
 
     if debug:
         for line in out:
-            logger = logging.getLogger('TPCH')
             logger.debug(line)
 
     secs = time.monotonic() - start
@@ -35,10 +40,12 @@ def run_command(command, verbose=False):
     if verbose:
         logging.getLogger('TPCH').info(cmd)
 
-    with subprocess.Popen(cmd, stdout=subprocess.PIPE) as p:
-        b = p.stdout.read()
-        s = b.decode('utf-8')
-        return s.splitlines()
+    with subprocess.Popen(cmd,
+                          encoding='utf-8',
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE) as p:
+        out, err = p.communicate()
+        return out.splitlines(), err.splitlines()
 
 
 def parse_psql_timings(queries, output):

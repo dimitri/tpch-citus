@@ -14,7 +14,15 @@ VACUUM   = 'make -f %s DSN=%s vacuum'
 def load(step, dsn, scale_factor, children):
     # the LOAD phase doesn't bring any particulary useful information on the
     # table, so just forget about any output here, really.
-    utils.run_command(LOAD % (MAKEFILE, dsn, scale_factor, children, step))
+    command = LOAD % (MAKEFILE, dsn, scale_factor, children, step)
+    out, err = utils.run_command(command)
+
+    if err:
+        logger = logging.getLogger('TPCH')
+        logger.error(command)
+        for line in err:
+            logger.error(line)
+
     return
 
 
@@ -67,7 +75,9 @@ class Load():
             phase, start=start, secs=secs, steps=self.steps)
 
         self.logger.info("%s: vacuum analyze", self.system)
-        vstart, vsecs = utils.run_schema_file(self.dsn, self.schema.vacuum)
+        vstart, vsecs = utils.run_schema_file(self.dsn,
+                                              self.schema.vacuum,
+                                              self.logger)
         self.track.register_job("vacuum analyze", start=vstart, secs=vsecs)
 
         self.logger.info("%s: loaded %d steps of data in %gs, using %d CPU",

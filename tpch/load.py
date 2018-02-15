@@ -21,8 +21,12 @@ def load(step, dsn, scale_factor, children):
     if err:
         logger = logging.getLogger('TPCH')
         logger.error(command)
+        for line in out:
+            logger.error(line)
         for line in err:
             logger.error(line)
+
+        raise RuntimeError("Failed to load step %s" % step)
 
     return
 

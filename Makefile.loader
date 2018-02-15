@@ -33,7 +33,7 @@ os:
 
 tools:
 	sudo pip-3.6 install -r requirements.txt
-	make -C $(TPCH_SRC) clean all
+	make -s -C $(TPCH_SRC) clean all
 
 schema:
 	$(PSQL) -f $(TOP)/$(SCHEMA)

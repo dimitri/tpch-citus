@@ -8,9 +8,10 @@ AURORA_LOADER = aws.out/aurora.loader.json
 PGSQL_LOADER  = aws.out/pgsql.loader.json
 CITUS_LOADER  = aws.out/citus.loader.json
 
+SETUP    ?= tpch.ini
 SCHEDULE ?= full
 
-NAME    = aws.out/name.txt
+NAME   ?= aws.out/name.txt
 BNAME   = $(shell cat $(NAME))
 
 # LOGFILE is on the (remote) loaders, LOGDIR is local to the controller
@@ -34,7 +35,7 @@ rsync = $(RSYNC) ./ ec2-user@$(shell $(WAIT) $(1)):tpch/
 ssh   = ssh -l ec2-user $(shell $(WAIT) $(1))
 scp   = scp ec2-user@$(shell $(WAIT) $(1)):$(2)
 rmake = $(call ssh,$(1)) "cd tpch && make DSN=$(shell $(DSN) $(2)) -f Makefile.loader $(3)"
-tpch  = $(call ssh,$(1)) LC_ALL=en_US.utf8 ./tpch/tpch.py $(3) --name $(BNAME) --schedule $(SCHEDULE) --log $(LOGFILE) --dsn $(shell $(DSN) $(2)) --detach
+tpch  = $(call ssh,$(1)) LC_ALL=en_US.utf8 ./tpch/tpch.py $(3) --ini ./tpch/$(SETUP) --name $(BNAME) --schedule $(SCHEDULE) --log $(LOGFILE) --dsn $(shell $(DSN) $(2)) --detach
 
 
 .SILENT: help
@@ -68,19 +69,19 @@ name: $(NAME) ;
 $(NAME):
 	./tpch.py name > $@
 
-bench-citus: loader-citus
+bench-citus: loader-citus $(NAME)
 	$(call tpch,$(CITUS_LOADER),$(CITUS),benchmark citus --kind citus)
 	$(call ssh,$(CITUS_LOADER)) tail -f $(LOGFILE)
 
-bench-pgsql: loader-pgsql
+bench-pgsql: loader-pgsql $(NAME)
 	$(call tpch,$(PGSQL_LOADER),$(PGSQL),benchmark citus-single-node --kind citus)
 	$(call ssh,$(PGSQL_LOADER)) tail -f $(LOGFILE)
 
-bench-rds: loader-rds rds
+bench-rds: loader-rds rds $(NAME)
 	$(call tpch,$(RDS_LOADER),$(RDS),benchmark rds)
 	$(call ssh,$(RDS_LOADER)) tail -f $(LOGFILE)
 
-bench-aurora: loader-aurora aurora
+bench-aurora: loader-aurora aurora $(NAME)
 	$(call tpch,$(AURORA_LOADER),$(AURORA),benchmark aurora)
 	$(call ssh,$(AURORA_LOADER)) tail -f $(LOGFILE)
 
@@ -217,7 +218,8 @@ psql-aurora:
 	$(call ssh,$(AURORA_LOADER)) "psql -d $(shell $(DSN) $(AURORA))"
 
 cardinalities:
-	DSN=$(CITUS) $(MAKE) -f Makefile.loader cardinalities
+	$(call rmake,$(RDS_LOADER),$(RDS),cardinalities)
+	$(call rmake,$(AURORA_LOADER),$(AURORA),cardinalities)
 
 status:
 	$(INFRA) ec2 list

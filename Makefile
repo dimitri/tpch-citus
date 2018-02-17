@@ -56,9 +56,7 @@ help:
 	echo "  bench-aurora   run given SCHEDULE on the aurora system"
 	echo
 	echo "  tail-f         see logs from currently running benchmark"
-	echo "  fetch-logs     fetch logs in ./logs/YYYYMMDD_name/system.log"
-	echo "  dump-results   dump results in ./logs/YYYYMMDD_name/system.dump"
-	echo "  merge-results  merge the results into the RESULTS_DSN database"
+	echo "  merge-results  fetch all the results and merge them in RESULTS_DSN"
 	echo
 	echo "  cardinalities  run SELECT count(*) on all the tables"
 
@@ -148,19 +146,24 @@ dump-results-aurora:
 	mv /tmp/job.copy $(LOGDIR)/aurora.job.copy
 	mv /tmp/query.copy $(LOGDIR)/aurora.query.copy
 
-merge-results: merge-results-citus merge-results-pgsql merge-results-rds merge-results-aurora ;
+merge-results: fetch-logs dump-results cleanup-results merge-all-results ;
+
+merge-all-results: merge-results-citus merge-results-pgsql merge-results-rds merge-results-aurora ;
+
+cleanup-results:
+	psql -a -d $(RESULTS_DSN) -v run=$(BNAME) -f schema/tracking-delete-run.sql
 
 merge-results-citus:
-	./scripts/merge-results.sh $(RESULTS_DSN) citus $(LOGDIR)
+	./scripts/merge-results.sh $(RESULTS_DSN) citus $(LOGDIR) $(BNAME)
 
 merge-results-pgsql:
-	./scripts/merge-results.sh $(RESULTS_DSN) pgsql $(LOGDIR)
+	./scripts/merge-results.sh $(RESULTS_DSN) pgsql $(LOGDIR) $(BNAME)
 
 merge-results-rds:
-	./scripts/merge-results.sh $(RESULTS_DSN) rds $(LOGDIR)
+	./scripts/merge-results.sh $(RESULTS_DSN) rds $(LOGDIR) $(BNAME)
 
 merge-results-aurora:
-	./scripts/merge-results.sh $(RESULTS_DSN) aurora $(LOGDIR)
+	./scripts/merge-results.sh $(RESULTS_DSN) aurora $(LOGDIR) $(BNAME)
 
 
 infra: rds aurora loaders ;
@@ -256,7 +259,7 @@ pycodestyle:
 .PHONY: becnhmark bench-rds bench-aurora bench-pgsql bench-citus
 .PHONY: shell-rds shell-aurora psql-rds psql-aurora
 .PHONY: terminate terminate-loaders
-.PHONY: fetch-logs dump-results merge-results
+.PHONY: fetch-logs dump-results merge-results merge-all-results cleanup-results
 .PHONY: fetch-logs-citus fetch-logs-pgsql fetch-logs-rds fetch-logs-aurora
 .PHONY: dump-results-citus dump-results-pgsql dump-results-rds dump-results-aurora
 .PHONY: merge-results-citus merge-results-pgsql merge-results-rds merge-results-aurora

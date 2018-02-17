@@ -60,8 +60,9 @@ create or replace view results
 
 
 create or replace view qpm as
-     select system,
-            job.name,
+     select run.name as run,
+            system,
+            job.name as job,
 
             case when job.steps is not null
                  then job.steps[array_upper(job.steps, 1)]
@@ -93,7 +94,8 @@ create or replace view qpm as
 
 create or replace view query_timings as
      with perc_arrays as (
-         select run.system as system,
+         select run.name as run,
+                run.system as system,
                 job.id as job,
                 job.name as jobname,
                 sf.sf,
@@ -117,7 +119,7 @@ create or replace view query_timings as
                 as sf on true
        group by run.id, sf.sf, job.id, query.name
     )
-    select system, sf, jobname, query, count,
+    select run, system, sf, jobname, query, count,
            average,
            pct[1] as median,
            pct[2] as "90%",
@@ -125,7 +127,7 @@ create or replace view query_timings as
            pct[4] as "98%",
            pct[5] as "99%"
       from perc_arrays
-     order by system, sf, job, query;
+     order by run, system, sf, job, query;
 
 
 commit;

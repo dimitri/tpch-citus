@@ -193,7 +193,7 @@ terminate: terminate-loaders
 	-$(INFRA) rds delete --json $(RDS)
 	-$(INFRA) aurora delete --json $(AURORA)
 
-terminate-loaders:
+terminate-loaders: merge-results
 	rm -rf $(NAME)
 	-$(INFRA) ec2 terminate --json $(RDS_LOADER)
 	-$(INFRA) ec2 terminate --json $(AURORA_LOADER)

@@ -34,7 +34,10 @@ class TaskPool():
             futures.append(self.pool.submit(fun, *args))
 
         while (time.monotonic() - self.start) < (self.duration):
+            # don't busy loop too hard on the system when running long
+            # queries (by TPC-H design)
             time.sleep(self.pause)
+
             # collect results from the future as they are available,
             # and start other threads to keep them CPU busy
             done, not_done = wait(futures, return_when=FIRST_COMPLETED)
@@ -46,10 +49,17 @@ class TaskPool():
                 self.tasks_done.append(future)
                 self.handle_results(future.result())
 
-            for x in range(len(ready)):
-                # and submit another stream of queries
-                futures.append(self.pool.submit(fun, *args))
+            # it could be that while waiting for the futures to be ready we
+            # went past assigned duration already, in that case don't start
+            # new tasks
+            #
+            # otherwise and submit another stream of queries
+            if (time.monotonic() - self.start) < (self.duration):
+                for x in range(len(ready)):
+                    futures.append(self.pool.submit(fun, *args))
 
+            # now that the futures are queued to start, report our progress,
+            # including track/register timings in a local database
             self.report_progress()
 
         # now we're timed out, so retrieve all remaining results

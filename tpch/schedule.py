@@ -7,20 +7,17 @@ from .load import Load
 from .stream import Stream
 from .initdb import InitDB
 from .tracking import Tracking
-from .task_dist import DistributedTasks
+from .helpers import TpchComponent
 
 
-class Schedule():
+class Schedule(TpchComponent):
     def __init__(self, conf, system, logger, dsn,
                  kind='pgsql', recursive=False):
-        self.dsn = dsn
-        self.conf = conf
+        super().__init__(conf, dsn, logger, None)
+
         self.kind = kind
         self.system = system
         self.recursive = recursive
-
-        self.track = None
-        self.logger = logger
 
         self.init_schema_files(kind)
 
@@ -43,9 +40,8 @@ class Schedule():
 
         else:
             self.track.register_benchmark(schedule)
-            self.logger.info(
-                '%s: starting benchmark %s', self.system, self.name)
-            self.logger.info('%s: starting schedule %s', self.system, schedule)
+            self.log('starting benchmark %s', self.name)
+            self.log('starting schedule %s', schedule)
 
         # do we know how to do the job?
         if schedule in self.conf.schedules:
@@ -62,8 +58,7 @@ class Schedule():
 
             if not isinstance(phase, list):
                 # having ['phase1', 'phase2'] in the logs isn't helpful here
-                self.logger.info(
-                    '%s: starting schedule phase %s', self.system, phase)
+                self.log('starting schedule phase %s', phase)
 
             if isinstance(phase, list):
                 # that's a parallel schedule, create a log queue
@@ -131,6 +126,9 @@ class Schedule():
         self.end = time.monotonic()
 
         self.track.register_run_time(self.end - self.start)
+
+        if not self.recursive:
+            self.log('schedule %s done in %gs', schedule, self.end - self.start)
 
         return
 

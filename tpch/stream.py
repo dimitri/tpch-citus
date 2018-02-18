@@ -27,10 +27,12 @@ def stream(dsn, queries, system):
 
 class StreamTaskPool(TaskPool):
     def report_progress(self):
-        self.logger.info('%s: %d query streams executed in %gs',
+        secs = time.monotonic() - self.start
+        self.logger.info('%s: %d query streams executed in %gs, %gQPM',
                          self.system,
                          len(self.tasks_done),
-                         time.monotonic() - self.start)
+                         secs,
+                         len(self.tasks_done) / secs * 60.0)
 
     def handle_results(self, result):
         self.nbs += 1
@@ -75,6 +77,8 @@ class Stream(TpchComponent):
         secs = self.pool.run(stream, self.dsn, self.queries, self.system)
         self.track.register_job_time(self.pool.stream_id, secs)
 
-        self.log("executed %d streams (%d queries) in %gs, using %d CPU",
-                 self.pool.nbs, self.pool.nbq, secs, self.cpu)
+        self.log(
+            "executed %d streams (%d queries) in %gs at %gQPM, using %d CPU",
+            self.pool.nbs, self.pool.nbq,
+            secs, self.cpu, self.pool.nbq / secs * 60.0)
         return

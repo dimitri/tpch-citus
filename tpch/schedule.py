@@ -121,7 +121,7 @@ class Schedule(TpchComponent):
                 cmd.run(self.name, phase)
 
             else:
-                raise ValueError("Unknown schedule entry %s", job)
+                raise ValueError("Unknown schedule entry %s", phase)
 
         self.end = time.monotonic()
 

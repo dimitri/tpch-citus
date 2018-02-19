@@ -146,9 +146,9 @@ dump-results-aurora:
 	mv /tmp/job.copy $(LOGDIR)/aurora.job.copy
 	mv /tmp/query.copy $(LOGDIR)/aurora.query.copy
 
-merge-results: fetch-logs dump-results cleanup-results merge-all-results ;
+merge-results: fetch-logs dump-results merge-all-results ;
 
-merge-all-results: merge-results-citus merge-results-pgsql merge-results-rds merge-results-aurora ;
+merge-all-results: cleanup-results merge-results-citus merge-results-pgsql merge-results-rds merge-results-aurora ;
 
 cleanup-results:
 	psql -a -d $(RESULTS_DSN) -v run=$(BNAME) -f schema/tracking-delete-run.sql

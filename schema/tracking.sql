@@ -86,7 +86,7 @@ create or replace view qpm as
             left join query on query.job = job.id
 
       where job.steps is not null
-         or job.name ~ 'user-stream'
+         or job.name ~ 'stream'
 
      group by run.id, job.id, query.job
      order by run.id, job.start;

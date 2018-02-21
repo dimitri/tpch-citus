@@ -194,7 +194,9 @@ terminate: terminate-loaders
 	-$(INFRA) rds delete --json $(RDS)
 	-$(INFRA) aurora delete --json $(AURORA)
 
-terminate-loaders: merge-results
+terminate-loaders: merge-results terminate-all-loaders ;
+
+terminate-all-loaders:
 	rm -f $(NAME)
 	-$(INFRA) ec2 terminate --json $(RDS_LOADER)
 	-$(INFRA) ec2 terminate --json $(AURORA_LOADER)
@@ -259,7 +261,7 @@ pycodestyle:
 .PHONY: infra rds aurora loaders status name
 .PHONY: becnhmark bench-rds bench-aurora bench-pgsql bench-citus
 .PHONY: shell-rds shell-aurora psql-rds psql-aurora
-.PHONY: terminate terminate-loaders
+.PHONY: terminate terminate-loaders terminate-all-loaders
 .PHONY: fetch-logs dump-results merge-results merge-all-results cleanup-results
 .PHONY: fetch-logs-citus fetch-logs-pgsql fetch-logs-rds fetch-logs-aurora
 .PHONY: dump-results-citus dump-results-pgsql dump-results-rds dump-results-aurora

@@ -80,5 +80,5 @@ class Stream(TpchComponent):
         self.log(
             "executed %d streams (%d queries) in %gs at %gQPM, using %d CPU",
             self.pool.nbs, self.pool.nbq,
-            secs, self.cpu, self.pool.nbq / secs * 60.0)
+            secs, self.pool.nbq / secs * 60.0, self.cpu)
         return

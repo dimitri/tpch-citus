@@ -24,7 +24,7 @@ class RDS():
             return self.id
 
         out = self.conn.create_db_instance(
-            DBName = self.conf.rds.name,
+            DBName = self.conf.rds.dbname,
             DBInstanceIdentifier = 'tpch-rds',
             AllocatedStorage = self.conf.rds.size,
             Engine = 'postgres',

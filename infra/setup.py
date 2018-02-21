@@ -10,8 +10,8 @@ from collections import namedtuple
 
 Loader_conf = namedtuple('EC2', 'instance ami')
 EBS_conf    = namedtuple('EBS', 'iops size type')
-RDS_conf    = namedtuple('RDS', 'name iops size iclass stype version')
-Aurora_conf = namedtuple('Aurora', 'name iclass stype')
+RDS_conf    = namedtuple('RDS', 'dbname iops size iclass stype version')
+Aurora_conf = namedtuple('Aurora', 'cluster iname dbname iclass stype')
 PgSQL_conf  = namedtuple('PgSQL', 'dsn')
 Citus_conf  = namedtuple('Citus', 'dsn')
 
@@ -40,7 +40,7 @@ class Setup():
         )
 
         self.rds = RDS_conf(
-            name    = conf.get('rds', 'name'),
+            dbname  = conf.get('rds', 'dbname'),
             iops    = conf.getint('rds', 'iops'),
             size    = conf.getint('rds', 'size'),
             iclass  = conf.get('rds', 'class'),
@@ -49,9 +49,11 @@ class Setup():
         )
 
         self.aurora = Aurora_conf(
-            name    = conf.get('rds', 'name'),
-            iclass  = conf.get('rds', 'class'),
-            stype   = conf.get('rds', 'stype')
+            cluster = conf.get('aurora', 'cluster'),
+            iname   = conf.get('aurora', 'iname'),
+            dbname  = conf.get('aurora', 'dbname'),
+            iclass  = conf.get('aurora', 'class'),
+            stype   = conf.get('aurora', 'stype')
         )
 
         self.pgsql = PgSQL_conf(dsn = conf.get('pgsql', 'dsn'))

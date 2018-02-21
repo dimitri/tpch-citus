@@ -33,8 +33,8 @@ class Cluster():
 
         out = self.conn.create_db_cluster(
             AvailabilityZones = [self.conf.az],
-            DatabaseName = self.conf.aurora.name,
-            DBClusterIdentifier = 'tpch-aurora-cluster',
+            DatabaseName = self.conf.aurora.dbname,
+            DBClusterIdentifier = self.conf.aurora.cluster,
             VpcSecurityGroupIds = [self.conf.sg],
             Engine = 'aurora-postgresql',
             Port = self.Port,
@@ -101,7 +101,7 @@ class Aurora(rds.RDS):
 
         out = self.conn.create_db_instance(
             DBClusterIdentifier = self.cluster.id,
-            DBInstanceIdentifier = 'tpch-aurora',
+            DBInstanceIdentifier = self.conf.aurora.iname,
             Engine = 'aurora-postgresql',
             DBInstanceClass = self.conf.aurora.iclass
         )

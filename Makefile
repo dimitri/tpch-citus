@@ -8,8 +8,9 @@ AURORA_LOADER = aws.out/aurora.loader.json
 PGSQL_LOADER  = aws.out/pgsql.loader.json
 CITUS_LOADER  = aws.out/citus.loader.json
 
-SETUP    ?= tpch.ini
-SCHEDULE ?= full
+SETUP     ?= tpch.ini
+INFRA_INI ?= infra.ini
+SCHEDULE  ?= full
 
 NAME   ?= aws.out/name.txt
 BNAME   = $(shell cat $(NAME))
@@ -18,7 +19,7 @@ BNAME   = $(shell cat $(NAME))
 LOGFILE = ./tpch.out
 LOGDIR  = ./logs/$(shell date "+%Y%m%d")_$(BNAME)
 
-INFRA   = ./infra.py --config ./infra.ini
+INFRA   = ./infra.py --config $(INFRA_INI)
 WAIT    = $(INFRA) ec2 wait --json
 DSN     = $(INFRA) dsn
 PGSQL   = $(shell $(INFRA) pgsql dsn)
@@ -194,7 +195,7 @@ terminate: terminate-loaders
 	-$(INFRA) aurora delete --json $(AURORA)
 
 terminate-loaders: merge-results
-	rm -rf $(NAME)
+	rm -f $(NAME)
 	-$(INFRA) ec2 terminate --json $(RDS_LOADER)
 	-$(INFRA) ec2 terminate --json $(AURORA_LOADER)
 	-$(INFRA) ec2 terminate --json $(PGSQL_LOADER)

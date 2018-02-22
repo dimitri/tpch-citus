@@ -159,11 +159,10 @@ close_direct(PGconn *conn)
 }
 
 
-
 void
-copyrow(PGconn *conn, const char *data, int len)
+copyrow(PGconn *conn, PQExpBuffer buffer)
 {
-	int status = PQputCopyData(conn, data, len);
+	int status = PQputCopyData(conn, buffer->data, buffer->len);
 
 	if (status == -1)
 	{
@@ -222,22 +221,25 @@ pg_append(int format, PQExpBuffer buffer, void *data, int len, int sep)
 
 		case DT_EOL:
 			appendPQExpBuffer(buffer, "\n");
+			break;
 	}
 
 	if (sep)
+	{
 		/* COPY Separator is a TAB character */
 		appendPQExpBuffer(buffer, "\t");
+	}
 
 	return(0);
 }
 
 int
-ld_cust (customer_t *c, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
+ld_cust (customer_t *c, int mode, DSS_HUGE count)
 {
 	static PGconn *conn = NULL;
 	PQExpBuffer fp;
 
-	if (rownum == start)
+	if (conn == NULL)
 	{
 		conn = prep_direct("CUSTOMER");
 	}
@@ -256,8 +258,6 @@ ld_cust (customer_t *c, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownu
 	LD_VSTR_LAST(fp, c->comment, c->clen);
 	LD_END(fp);
 
-	copyrow(conn, fp->data, fp->len);
-
 	if (count == 1)
 	{
 		close_direct(conn);
@@ -268,12 +268,12 @@ ld_cust (customer_t *c, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownu
 
 
 int
-ld_order (order_t *o, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
+ld_order (order_t *o, int mode, DSS_HUGE count)
 {
 	static PGconn *conn = NULL;
 	PQExpBuffer fp_o;
 
-	if (rownum == start)
+	if (conn == NULL)
 	{
 		conn = prep_direct("ORDERS");
 	}
@@ -290,8 +290,6 @@ ld_order (order_t *o, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
     LD_VSTR_LAST(fp_o, o->comment, o->clen);
     LD_END(fp_o);
 
-	copyrow(conn, fp_o->data, fp_o->len);
-
 	if (count == 1)
 	{
 		close_direct(conn);
@@ -300,13 +298,13 @@ ld_order (order_t *o, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
 }
 
 
-int ld_line (order_t *o, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
+int ld_line (order_t *o, int mode, DSS_HUGE count)
 {
 	static PGconn *conn = NULL;
 	PQExpBuffer fp_l;
     long      i;
 
-	if (rownum == start)
+	if (conn == NULL)
 	{
 		conn = prep_direct("LINEITEM");
 	}
@@ -331,8 +329,6 @@ int ld_line (order_t *o, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rown
         LD_STR(fp_l, o->l[i].shipmode, L_SMODE_LEN);
         LD_VSTR_LAST(fp_l, o->l[i].comment,o->l[i].clen);
         LD_END(fp_l);
-
-		copyrow(conn, fp_l->data, fp_l->len);
 	}
 
 	if (count == 1)
@@ -345,23 +341,23 @@ int ld_line (order_t *o, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rown
 
 
 int
-ld_order_line (order_t *p, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
+ld_order_line (order_t *p, int mode, DSS_HUGE count)
 {
     tdefs[ORDER].name = tdefs[ORDER_LINE].name;
-    ld_order(p, mode, start, count, rownum);
-    ld_line (p, mode, start, count, rownum);
+    ld_order(p, mode, count);
+    ld_line (p, mode, count);
 
     return(0);
 }
 
 
 int
-ld_part (part_t *part, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
+ld_part (part_t *part, int mode, DSS_HUGE count)
 {
 	static PGconn *conn = NULL;
 	PQExpBuffer p_fp;
 
-	if (rownum == start)
+	if (conn == NULL)
 	{
 		conn = prep_direct("PART");
 	}
@@ -378,8 +374,6 @@ ld_part (part_t *part, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum
 	LD_VSTR_LAST(p_fp, part->comment,part->clen);
 	LD_END(p_fp);
 
-	copyrow(conn, p_fp->data, p_fp->len);
-
 	if (count == 1)
 	{
 		close_direct(conn);
@@ -389,13 +383,13 @@ ld_part (part_t *part, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum
 }
 
 int
-ld_psupp (part_t *part, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
+ld_psupp (part_t *part, int mode, DSS_HUGE count)
 {
 	static PGconn *conn = NULL;
 	PQExpBuffer ps_fp;
     long      i;
 
-	if (rownum == start)
+	if (conn == NULL)
 	{
 		conn = prep_direct("PARTSUPP");
 	}
@@ -409,8 +403,6 @@ ld_psupp (part_t *part, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownu
 		LD_MONEY(ps_fp, &part->s[i].scost);
 		LD_VSTR_LAST(ps_fp, part->s[i].comment,part->s[i].clen);
 		LD_END(ps_fp);
-
-		copyrow(conn, ps_fp->data, ps_fp->len);
 	}
 
 	if (count == 1)
@@ -423,23 +415,23 @@ ld_psupp (part_t *part, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownu
 
 
 int
-ld_part_psupp (part_t *p, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
+ld_part_psupp (part_t *p, int mode, DSS_HUGE count)
 {
     tdefs[PART].name = tdefs[PART_PSUPP].name;
-    ld_part(p, mode, start, count, rownum);
-    ld_psupp (p, mode, start, count, rownum);
+    ld_part(p, mode, count);
+    ld_psupp (p, mode, count);
 
     return(0);
 }
 
 
 int
-ld_supp (supplier_t *supp, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
+ld_supp (supplier_t *supp, int mode, DSS_HUGE count)
 {
 	static PGconn *conn = NULL;
 	PQExpBuffer fp;
 
-	if (rownum == start)
+	if (conn == NULL)
 	{
 		conn = prep_direct("SUPPLIER");
 	}
@@ -454,8 +446,6 @@ ld_supp (supplier_t *supp, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE ro
 	LD_VSTR_LAST(fp, supp->comment, supp->clen);
 	LD_END(fp);
 
-	copyrow(conn, fp->data, fp->len);
-
 	if (count == 1)
 	{
 		close_direct(conn);
@@ -466,12 +456,12 @@ ld_supp (supplier_t *supp, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE ro
 
 
 int
-ld_nation (code_t *c, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
+ld_nation (code_t *c, int mode, DSS_HUGE count)
 {
 	static PGconn *conn = NULL;
 	PQExpBuffer fp;
 
-	if (rownum == start)
+	if (conn == NULL)
 	{
 		conn = prep_direct("NATION");
 	}
@@ -483,8 +473,6 @@ ld_nation (code_t *c, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
 	LD_VSTR_LAST(fp, c->comment, c->clen);
 	LD_END(fp);
 
-	copyrow(conn, fp->data, fp->len);
-
 	if (count == 1)
 	{
 		close_direct(conn);
@@ -495,12 +483,12 @@ ld_nation (code_t *c, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
 
 
 int
-ld_region (code_t *c, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
+ld_region (code_t *c, int mode, DSS_HUGE count)
 {
 	static PGconn *conn = NULL;
 	PQExpBuffer fp;
 
-	if (rownum == start)
+	if (conn == NULL)
 	{
 		conn = prep_direct("REGION");
 	}
@@ -510,8 +498,6 @@ ld_region (code_t *c, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum)
 	LD_STR(fp, c->text, REGION_LEN);
 	LD_VSTR_LAST(fp, c->comment, c->clen);
 	LD_END(fp);
-
-	copyrow(conn, fp->data, fp->len);
 
 	if (count == 1)
 	{

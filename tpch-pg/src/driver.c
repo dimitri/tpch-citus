@@ -154,30 +154,30 @@ static int bTableSet = 0;
 /*
  * flat file print functions; used with -F(lat) option
  */
-int pr_cust (customer_t * c, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int pr_line (order_t * o, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int pr_order (order_t * o, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int pr_part (part_t * p, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int pr_psupp (part_t * p, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int pr_supp (supplier_t * s, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int pr_order_line (order_t * o, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int pr_part_psupp (part_t * p, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int pr_nation (code_t * c, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int pr_region (code_t * c, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
+int pr_cust (customer_t * c, int mode, DSS_HUGE count);
+int pr_line (order_t * o, int mode, DSS_HUGE count);
+int pr_order (order_t * o, int mode, DSS_HUGE count);
+int pr_part (part_t * p, int mode, DSS_HUGE count);
+int pr_psupp (part_t * p, int mode, DSS_HUGE count);
+int pr_supp (supplier_t * s, int mode, DSS_HUGE count);
+int pr_order_line (order_t * o, int mode, DSS_HUGE count);
+int pr_part_psupp (part_t * p, int mode, DSS_HUGE count);
+int pr_nation (code_t * c, int mode, DSS_HUGE count);
+int pr_region (code_t * c, int mode, DSS_HUGE count);
 
 /*
- * load direct functions, used with -D(irect) option
+ * load direct functions; used with -D(irect) option
  */
-int ld_cust (customer_t * c, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int ld_line (order_t * o, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int ld_order (order_t * o, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int ld_part (part_t * p, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int ld_psupp (part_t * p, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int ld_supp (supplier_t * s, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int ld_order_line (order_t * o, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int ld_part_psupp (part_t * p, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int ld_nation (code_t * c, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
-int ld_region (code_t * c, int mode, DSS_HUGE start, DSS_HUGE count, DSS_HUGE rownum);
+int ld_cust (customer_t * c, int mode, DSS_HUGE count);
+int ld_line (order_t * o, int mode, DSS_HUGE count);
+int ld_order (order_t * o, int mode, DSS_HUGE count);
+int ld_part (part_t * p, int mode, DSS_HUGE count);
+int ld_psupp (part_t * p, int mode, DSS_HUGE count);
+int ld_supp (supplier_t * s, int mode, DSS_HUGE count);
+int ld_order_line (order_t * o, int mode, DSS_HUGE count);
+int ld_part_psupp (part_t * p, int mode, DSS_HUGE count);
+int ld_nation (code_t * c, int mode, DSS_HUGE count);
+int ld_region (code_t * c, int mode, DSS_HUGE count);
 
 /*
  * seed generation functions; used with '-O s' option
@@ -387,34 +387,34 @@ gen_tbl (int tnum, DSS_HUGE start, DSS_HUGE count, long upd_num)
 					}
 				}
 				if (set_seeds == 0)
-					tdefs[tnum].loader(&o, upd_num, start, count, i);
+					tdefs[tnum].loader(&o, upd_num, count);
 				break;
 			case SUPP:
 				mk_supp (i, &supp);
 				if (set_seeds == 0)
-					tdefs[tnum].loader(&supp, upd_num, start, count, i);
+					tdefs[tnum].loader(&supp, upd_num, count);
 				break;
 			case CUST:
 				mk_cust (i, &cust);
 				if (set_seeds == 0)
-					tdefs[tnum].loader(&cust, upd_num, start, count, i);
+					tdefs[tnum].loader(&cust, upd_num, count);
 				break;
 			case PSUPP:
 			case PART:
 			case PART_PSUPP:
 				mk_part (i, &part);
 				if (set_seeds == 0)
-					tdefs[tnum].loader(&part, upd_num, start, count, i);
+					tdefs[tnum].loader(&part, upd_num, count);
 				break;
 			case NATION:
 				mk_nation (i, &code);
 				if (set_seeds == 0)
-					tdefs[tnum].loader(&code, 0, start, count, i);
+					tdefs[tnum].loader(&code, 0, count);
 				break;
 			case REGION:
 				mk_region (i, &code);
 				if (set_seeds == 0)
-					tdefs[tnum].loader(&code, 0, start, count, i);
+					tdefs[tnum].loader(&code, 0, count);
 				break;
 		}
 		row_stop(tnum);

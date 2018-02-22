@@ -502,8 +502,9 @@ int pg_append(int format, PQExpBuffer buffer, void *data, int len, int sep);
 #define LD_KEY(f, str) 			pg_append(DT_KEY, f, (void *)str, 0, -1)
 #define LD_MONEY(f, str) 		pg_append(DT_MONEY, f, (void *)str, 0, 1)
 #define LD_CHR(f, str)	 		pg_append(DT_CHR, f, (void *)str, 0, 1)
-#define  LD_STRT(fp)            fp = createPQExpBuffer();
-#define  LD_END(fp)             pg_append(DT_EOL, fp, NULL, 0, 0)
+#define  LD_STRT(fp)            fp = createPQExpBuffer()
+#define  LD_END(fp) { pg_append(DT_EOL, fp, NULL, 0, 0); copyrow(conn, fp); destroyPQExpBuffer(fp); }
+
 #ifdef MDY_DATE
 #define  LD_DATE(tgt, yr, mn, dy)					\
 	sprintf(tgt, "%02ld-%02ld-19%02ld", mn, dy, yr)

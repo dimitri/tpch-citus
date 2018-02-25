@@ -8,9 +8,9 @@ AURORA_LOADER = aws.out/aurora.loader.json
 PGSQL_LOADER  = aws.out/pgsql.loader.json
 CITUS_LOADER  = aws.out/citus.loader.json
 
-SETUP     ?= tpch.ini
-INFRA_INI ?= infra.ini
-SCHEDULE  ?= full
+SETUP    ?= tpch.ini
+INFRA    ?= infra.ini
+SCHEDULE ?= full
 
 NAME   ?= aws.out/name.txt
 BNAME   = $(shell cat $(NAME))
@@ -19,11 +19,11 @@ BNAME   = $(shell cat $(NAME))
 LOGFILE = ./tpch.out
 LOGDIR  = ./logs/$(shell date "+%Y%m%d")_$(BNAME)
 
-INFRA   = ./infra.py --config $(INFRA_INI)
-WAIT    = $(INFRA) ec2 wait --json
-DSN     = $(INFRA) dsn
-PGSQL   = $(shell $(INFRA) pgsql dsn)
-CITUS   = $(shell $(INFRA) citus dsn)
+MKINFRA = ./infra.py --config $(INFRA)
+WAIT    = $(MKINFRA) ec2 wait --json
+DSN     = $(MKINFRA) dsn
+PGSQL   = $(shell $(MKINFRA) pgsql dsn)
+CITUS   = $(shell $(MKINFRA) citus dsn)
 RSOPTS  = --exclude-from 'rsync.exclude'
 RSYNC   = rsync -e "ssh -o StrictHostKeyChecking=no" -avz $(RSOPTS)
 
@@ -191,17 +191,17 @@ rds: $(RDS) ;
 aurora: $(AURORA) ;
 
 terminate: terminate-loaders
-	-$(INFRA) rds delete --json $(RDS)
-	-$(INFRA) aurora delete --json $(AURORA)
+	-$(MKINFRA) rds delete --json $(RDS)
+	-$(MKINFRA) aurora delete --json $(AURORA)
 
 terminate-loaders: merge-results terminate-all-loaders ;
 
 terminate-all-loaders:
 	rm -f $(NAME)
-	-$(INFRA) ec2 terminate --json $(RDS_LOADER)
-	-$(INFRA) ec2 terminate --json $(AURORA_LOADER)
-	-$(INFRA) ec2 terminate --json $(PGSQL_LOADER)
-	-$(INFRA) ec2 terminate --json $(CITUS_LOADER)
+	-$(MKINFRA) ec2 terminate --json $(RDS_LOADER)
+	-$(MKINFRA) ec2 terminate --json $(AURORA_LOADER)
+	-$(MKINFRA) ec2 terminate --json $(PGSQL_LOADER)
+	-$(MKINFRA) ec2 terminate --json $(CITUS_LOADER)
 
 drop: drop-rds drop-aurora drop-pgsql drop-citus ;
 
@@ -228,9 +228,9 @@ cardinalities:
 	$(call rmake,$(AURORA_LOADER),$(AURORA),cardinalities)
 
 status:
-	$(INFRA) ec2 list
-	$(INFRA) rds list
-	$(INFRA) aurora list
+	$(MKINFRA) ec2 list
+	$(MKINFRA) rds list
+	$(MKINFRA) aurora list
 
 list-zones:
 	aws --region $(REGION) ec2 describe-availability-zones | \
@@ -246,13 +246,13 @@ list-amis:
                       | {"ImageId": .ImageId, "Description": .Description}'
 
 aws.out/%.loader.json:
-	$(INFRA) ec2 run --json $@
+	$(MKINFRA) ec2 run --json $@
 
 aws.out/%.rds.json:
-	$(INFRA) rds create --json $@
+	$(MKINFRA) rds create --json $@
 
 aws.out/%.aurora.json:
-	$(INFRA) aurora create --json $@
+	$(MKINFRA) aurora create --json $@
 
 pep8: pycodestyle ;
 pycodestyle:

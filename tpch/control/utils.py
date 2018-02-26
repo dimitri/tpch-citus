@@ -41,11 +41,11 @@ def awsdir(name):
 
 
 def setup_out_dir(name, infra, config):
-    outdir = outdir(name)
+    od = outdir(name)
 
     # copy given infra.ini and tpch.ini to our outdir
-    shutil.copyfile(infra, os.path.join(outdir, 'infra.ini'))
-    shutil.copyfile(config, os.path.join(outdir, 'tpch.ini'))
+    shutil.copyfile(infra, os.path.join(od, 'infra.ini'))
+    shutil.copyfile(config, os.path.join(od, 'tpch.ini'))
 
     return
 

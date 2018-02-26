@@ -55,9 +55,9 @@ control scripts uses rsync and ssh to control the loader instances.
 def setup(infra, config, name):
     """Set-up a TPC-H benchmark: infra.ini, tpch.ini"""
     if not name:
-        name = tpch.utils.compose_name()
+        name = tpch.run.utils.compose_name()
 
-    control.utils.setup_out_dir(name, infra, config)
+    tpch.control.utils.setup_out_dir(name, infra, config)
     click.echo(name)
 
 

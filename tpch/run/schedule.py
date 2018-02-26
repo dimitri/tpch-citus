@@ -63,7 +63,7 @@ class Schedule(TpchComponent):
             if isinstance(phase, list):
                 # that's a parallel schedule, create a log queue
                 q = logs.create_queue()
-                l = logs.start_listener(self.logger, q)
+                logfwd = logs.start_listener(self.logger, q)
 
                 # start workers
                 workers = []
@@ -85,7 +85,7 @@ class Schedule(TpchComponent):
 
                 # wait until the queue log listener is done, too
                 q.put_nowait(None)
-                l.join()
+                logfwd.join()
 
             elif phase == 'initdb':
                 # The initial phase name is hard-coded
@@ -128,7 +128,9 @@ class Schedule(TpchComponent):
         self.track.register_run_time(self.end - self.start)
 
         if not self.recursive:
-            self.log('schedule %s done in %gs', schedule, self.end - self.start)
+            self.log('schedule %s done in %gs',
+                     schedule,
+                     self.end - self.start)
 
         return
 

@@ -8,7 +8,11 @@ import logging
 import datetime
 
 
-MAKEFILE  = os.path.join(os.path.dirname(__file__), '..', 'Makefile.loader')
+MAKEFILE  = os.path.join(os.path.dirname(__file__),
+                         '..',
+                         '..',
+                         'Makefile.loader')
+
 SCHEMA    = 'make -f %s DSN=%s SCHEMA=%s schema'
 
 
@@ -87,7 +91,7 @@ def expand_step_range(steps):
 
 
 def compose_name(grammar='verbs adverbs', tokens='tpch-pg/src/dists.dss'):
-    distfile = os.path.join(os.path.dirname(__file__), '..', tokens)
+    distfile = os.path.join(os.path.dirname(__file__), '../..', tokens)
 
     dists = {}
     for d in grammar.split():

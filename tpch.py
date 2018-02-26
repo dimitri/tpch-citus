@@ -7,10 +7,10 @@ import logging
 
 from service import find_syslog, Service
 
-from tpch import logs
-from tpch import utils
-from tpch import setup
-from tpch.schedule import Schedule
+from tpch.run import logs
+from tpch.run import utils
+from tpch.run import setup
+from tpch.run.schedule import Schedule
 
 import click
 import os.path

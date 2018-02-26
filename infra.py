@@ -8,10 +8,10 @@ import boto3
 from datetime import date, datetime
 from collections import namedtuple
 
-from infra.setup import Setup
-from infra.instance import Instance
-from infra.rds import RDS
-from infra.aurora import Aurora
+from tpch.infra.setup import Setup
+from tpch.infra.instance import Instance
+from tpch.infra.rds import RDS
+from tpch.infra.aurora import Aurora
 
 import click
 

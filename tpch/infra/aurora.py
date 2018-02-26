@@ -120,7 +120,7 @@ class Aurora(rds.RDS):
             self.cluster.MasterUserPassword,
             self.cluster.endpoint(),
             self.cluster.Port,
-            self.conf.aurora.name
+            self.conf.aurora.dbname
         )
 
     def delete(self):

@@ -256,7 +256,7 @@ aws.out/%.aurora.json:
 
 pep8: pycodestyle ;
 pycodestyle:
-	pycodestyle --ignore E251,E221 *py tpch/*py infra/*py
+	pycodestyle --ignore E251,E221 *py tpch/{run,infra,control,}/*.py
 
 .PHONY: infra rds aurora loaders status name
 .PHONY: becnhmark bench-rds bench-aurora bench-pgsql bench-citus

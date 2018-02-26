@@ -8,7 +8,11 @@ from . import utils
 from .task_pool import TaskPool
 from .helpers import TpchComponent
 
-MAKEFILE = os.path.join(os.path.dirname(__file__), '..', 'Makefile.loader')
+MAKEFILE = os.path.join(os.path.dirname(__file__),
+                        '..',
+                        '..',
+                        'Makefile.loader')
+
 STREAM = "make -f %s DSN=%s STREAM='%s' stream"
 
 

@@ -5,7 +5,11 @@ from datetime import datetime
 from . import initdb
 from datetime import date, datetime
 
-SCHEMA = os.path.join(os.path.dirname(__file__), 'tracking.sql')
+SCHEMA = os.path.join(os.path.dirname(__file__),
+                      '..',
+                      '..',
+                      'schema',
+                      'tracking.sql')
 
 
 class Tracking():

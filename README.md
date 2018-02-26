@@ -10,19 +10,45 @@ tests.
 To run the Citus TPC-H benchmark, follow those steps:
 
   1. Review the target infrastructure setup: `infra.ini`
-  2. Start your target testing infrastructure: `make infra`
-  3. Manually start a Citus cluster, and register its DSN in `tpch.ini`
-  4. Register the Citus cluster also as PGSQL DSN
-  5. Run the tests
+  
+  2. Review the benchmark schedule and jobs: `tpch.ini`
+  
+  3. Manually start a Citus cluster, and register its DSN in `infra.ini`
+  
+  4. Give a name to your test setup: `./control.py setup infra.ini tpch.ini`
+  
+     That way, it's possible to run several benchmarks in parallel, with
+     maybe very different infrastructure properties (`db.r4.xlarge` and
+     `db.t4.16xlarge` comes to mind) and scale factors etc.
+     
+     After all we're using Cloud providers, where the hardware is unlimited.
+     We can run all the tests in parallel, in some level of isolation.
+     
+     This command returns a name, keep that somewhere, you'll need it. Every
+     becnhmark you want to run is given a name.
+  
+  5. Choose what systems you want to compare/exercise in this benchmark
+  
+         ./control.py register <schedule> citus rds aurora
 
-The tests themselves consist of several units. We're interested in both the
-data loading time and the read-only query performances:
+  6. Run the tests
+  
+         ./control.py benchmark <name>
 
-    make -j 4 infra
-    make -j 4 SCHEDULE=full benchmark
+The tests are now running. It's possible to see what's happening, of course.
+Try the following commands:
 
-As we are using `-j4` the four tested system can be tested concurrently
-(RDS, Aurora, PgSQL, Citus), thanks to make integrated parallelism.
+    ./control.py tail <name>
+    ./control.py status <name>
+    ./control.py update <name>
+
+For those commands to work you need to register a PostgreSQL database that
+is local to your controler node (usually your laptop):
+
+    createdb tpch-results
+    
+Then edit `tpch.ini`, the `[results]` section should contain a `dsn` entry
+where you can put the connection URI `postgresql://tpch-results`.
 
 ## Running the benchmarks locally
 
@@ -266,25 +292,9 @@ Use make to drive the benchmark, with the following targets:
   cardinalities  run SELECT count(*) on all the tables
 ~~~
 
-## Why Makefiles
+## Benchmark setup and roles
 
-This implementation uses Python drivers when necessary, and uses Makefiles a
-lot. The intend here is to make the benchmark as easy to hack as possible,
-and the nice thing about a Makefile is that it's easy to run, test and debug
-a single make target.
-
-It's also very easy to adapt the benchmark to different tools, allowing
-quick prototypes to be developped and making is easy and cheap to change
-one's mind.
-
-Make is a very good glue language, indeed.
-
-## Hacking the benchmarks
-
-First, we need to create the test infrastructure, then we can drive the
-testing and record the performance characteristics.
-
-The benchmark uses 3 kinds of services, that needs to be connected either
+This benchmark uses 3 kinds of services, that needs to be connected either
 using SSH or the PostgreSQL protocol directly:
 
   - a controller node, typically localhost, your usual laptop
@@ -296,12 +306,10 @@ using SSH or the PostgreSQL protocol directly:
 That's where you type your commands from. The controller mainly uses the
 following files:
 
-  - Makefile
+  - control.py
   - infra.ini
   - infra.py and the infra Python module
 
-The Makefile is used to automatically start the whole test infrastructure,
-and orchestrate the different tests that are run on the loader instances.
 The `infra.ini` setup registers AWS configuration parameters (such as the
 region, availability zone, VPC, subnets, security groups, keyname) and the
 setup of each kind of machine that is going to be used.
@@ -318,6 +326,14 @@ Citus and PostgreSQL core instances, you need to manage the services
 manually and then register the Database Source Name (or DSN) used to connect
 to the running service.
 
+The `control.py` file is using the `infra` API directly, so that you don't
+need to worry about the details in `infra.py`. In case you have to, though,
+you can begin with:
+
+    $ ./infra.py ec2 list
+    $ ./infra.py rds list
+    $ ./infra.py aurora list
+
 ### The Loader
 
 While the loader is meant to be remotely controlled by the controller, it is
@@ -333,7 +349,7 @@ The loader mainly uses the following files:
   - tpch-pg PostgreSQL port of the TPC-H sources (dbgen and qgen)
   - tpch.ini
   - tpch.py and the tpch Python module
-  - tracking.sql and a PostgreSQL database where to register the stats
+  - schema/tracking.sql and a PostgreSQL database where to register the stats
 
 The main entry point of the loader is the `tpch.py` command, which
 implements its action by means of calling into the `Makefile.loader` file,

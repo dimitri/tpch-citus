@@ -7,7 +7,11 @@ from . import utils
 from .task_dist import DistributedTasks
 from .helpers import Schema
 
-MAKEFILE = os.path.join(os.path.dirname(__file__), '..', 'Makefile.loader')
+MAKEFILE = os.path.join(os.path.dirname(__file__),
+                        '..',
+                        '..',
+                        'Makefile.loader')
+
 LOAD     = 'make -f %s DSN=%s SF=%s C=%s S=%s load'
 VACUUM   = 'make -f %s DSN=%s vacuum'
 

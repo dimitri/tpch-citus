@@ -2,3 +2,6 @@ click
 psycopg2-binary
 python-daemon
 service
+paramiko
+boto3
+humanize

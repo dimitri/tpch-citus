@@ -127,9 +127,10 @@ with ten as (
             print()
 
         for s in self.systems:
-            print("ssh -l ec2-user %s tail tpch.log" % s.loader.public_ip())
-            s.tail()
-            print()
+            if s.loader.status() == 'running':
+                print("ssh -l ec2-user %s tail tpch.log" % s.loader.public_ip())
+                s.tail()
+                print()
 
         print("Last known progress. Refresh with: ./control.py update %s"
               % self.name)
@@ -148,7 +149,7 @@ with ten as (
                 s.tail()
 
     def update(self):
-        self.log.info("update %s logs and results" % (self.name))
+        self.log.info("update %s logs and results", self.name)
 
         command = CLEAN_RESULTS % (self.resdb, self.name)
         self.log.info("Clean-up previous round of results first…")
@@ -169,3 +170,13 @@ with ten as (
         print()
         self.progress()
         return
+
+    def cancel(self):
+        self.log.info("Cancelling loaders for %s", self.name)
+        for s in self.systems:
+            s.cancel()
+
+    def terminate(self):
+        self.log.info("Terminating the whole infra for %s", self.name)
+        for s in self.systems:
+            s.terminate()

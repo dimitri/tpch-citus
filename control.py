@@ -140,6 +140,16 @@ def update(name, system, running):
 
 @cli.command()
 @click.argument('name')
+def merge_results(name):
+    """Merge local results from loaders"""
+    r = bench.Run(name)
+    r.merge_results()
+    print()
+    r.list()
+    print()
+
+@cli.command()
+@click.argument('name')
 @click.option('--system')
 def cancel(name, system):
     """Terminate loaders, cancel currently running benchmark"""

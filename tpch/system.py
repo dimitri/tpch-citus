@@ -212,33 +212,62 @@ class System():
         if self.is_ready():
             ip = self.loader.public_ip()
 
-            # fetch logs
-            logfile = cntl.logfile(self.run, self.name)
-            self.log.info('%s: downloading logs in %s',
-                          self.name, os.path.relpath(logfile))
-            cntl.download(ip, 'tpch.log', logfile)
+            self.fetch_logs(ip)
+            self.fetch_results(ip)
+            self.merge_results(resdb)
 
-            # fetch current results
-            self.log.info('%s: dumping and fetching current results',
-                          self.name)
-            self.log.info(MAKE_RES_DUMP)
-            cntl.execute_remote_command(ip, MAKE_RES_DUMP)
+        return
 
-            resdir = os.path.relpath(cntl.resdir(self.run))
+    def fetch_logs(self, ip=None):
+        if not ip:
+            if self.is_ready():
+                ip = self.loader.public_ip()
+            else:
+                self.log.error(
+                    "%s: can't fetch logs, loader not ready", self.name)
+                return
 
-            for copy in DUMP_FILES:
-                # local copy filename
-                tab, _ = os.path.splitext(copy)
-                lcfn = os.path.join(resdir, '%s.%s.copy' % (self.name, tab))
-                self.log.info('%s: downloading results in %s',
-                              self.name,
-                              os.path.relpath(lcfn))
-                cntl.download(ip, copy, lcfn)
+        # fetch logs
+        logfile = cntl.logfile(self.run, self.name)
+        self.log.info('%s: downloading logs in %s',
+                      self.name, os.path.relpath(logfile))
+        cntl.download(ip, 'tpch.log', logfile)
+        return
 
-            # merge results in local tracking database
-            command = MERGE_RESULTS % (resdb, self.name, resdir, self.run)
-            self.log.info("%s: merging results", self.name)
-            self.log.info(command)
-            cntl.run_command("Merge Results", command)
+    def fetch_results(self, ip=None):
+        if not ip:
+            if self.is_ready():
+                ip = self.loader.public_ip()
+            else:
+                self.log.error(
+                    "%s: can't fetch results, loader not ready", self.name)
+                return
+
+        # fetch current results
+        self.log.info('%s: dumping and fetching current results',
+                      self.name)
+        self.log.info(MAKE_RES_DUMP)
+        cntl.execute_remote_command(ip, MAKE_RES_DUMP)
+
+        resdir = os.path.relpath(cntl.resdir(self.run))
+
+        for copy in DUMP_FILES:
+            # local copy filename
+            tab, _ = os.path.splitext(copy)
+            lcfn = os.path.join(resdir, '%s.%s.copy' % (self.name, tab))
+            self.log.info('%s: downloading results in %s',
+                          self.name,
+                          os.path.relpath(lcfn))
+            cntl.download(ip, copy, lcfn)
+        return
+
+    def merge_results(self, resdb):
+        # merge results in local tracking database
+        resdir = os.path.relpath(cntl.resdir(self.run))
+        command = MERGE_RESULTS % (resdb, self.name, resdir, self.run)
+
+        self.log.info("%s: merging results", self.name)
+        self.log.info(command)
+        cntl.run_command("Merge Results", command)
 
         return

@@ -247,6 +247,11 @@ with ten as (
 
         return
 
+    def merge_results(self):
+        self.log.info("Merging results for %s", self.name)
+        for s in self.systems:
+            s.merge_results(self.resdb)
+
     def cancel(self, system=None):
         self.log.info("Cancelling loaders for %s", self.name)
         for s in self.systems:

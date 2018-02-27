@@ -7,8 +7,6 @@ import shutil
 import os.path
 import logging
 
-from pathlib import Path
-
 from tpch import bench
 from tpch import system
 
@@ -98,12 +96,10 @@ def status(name):
 @cli.command()
 def list():
     """List currently known benchmarks."""
-    p = Path('./aws.out/')
-    for f in p.iterdir():
-        if f.is_dir() and os.path.exists(os.path.join(f, 'run.ini')):
-            r = bench.Run(f.name)
-            r.list()
-            print()
+    for name in tpch.control.utils.list_runs():
+        run = bench.Run(name)
+        run.list()
+        print()
 
 @cli.command()
 @click.argument('name')
@@ -117,12 +113,29 @@ def tail(name, system, f):
 
 
 @cli.command()
-@click.argument('name')
+@click.option('--name')
 @click.option('--system')
-def update(name, system):
+@click.option('--running', is_flag=True, default=False)
+def update(name, system, running):
     """Fetch logs and intermediate results from loaders"""
-    r = bench.Run(name, system)
-    r.update()
+    if running:
+        for name in tpch.control.utils.list_runs():
+            run = bench.Run(name, system)
+            run.update(tail=False,progress=False)
+
+        # rather than printing a large progress report for each running
+        # benchmark we just updated, show the shorter list information
+        # screen at the end.
+        for name in tpch.control.utils.list_runs():
+            run = bench.Run(name)
+            if run.is_ready():
+                print()
+                run.list()
+    else:
+        r = bench.Run(name, system)
+        r.update()
+
+    print()
 
 
 @cli.command()

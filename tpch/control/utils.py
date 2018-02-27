@@ -6,6 +6,7 @@ import shlex
 import logging
 import subprocess
 
+from pathlib import Path
 from itertools import chain, cycle, islice
 from paramiko.client import SSHClient, MissingHostKeyPolicy
 
@@ -50,6 +51,13 @@ def setup_out_dir(name, infra, config):
     shutil.copyfile(config, os.path.join(od, 'tpch.ini'))
 
     return
+
+
+def list_runs(rdir=OUTDIR):
+    p = Path(rdir)
+    for f in p.iterdir():
+        if f.is_dir() and os.path.exists(os.path.join(f, 'run.ini')):
+            yield f.name
 
 
 def infra_ini_path(name, filename='infra.ini'):

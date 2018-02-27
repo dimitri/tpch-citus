@@ -214,7 +214,14 @@ with ten as (
             for s in self.systems:
                 s.tail()
 
-    def update(self, progress=True):
+    def is_ready(self):
+        ready = [s.is_ready() for s in self.systems]
+        return all(ready)
+
+    def update(self, tail=True, progress=True):
+        if not self.is_ready():
+            return
+
         self.log.info("update %s logs and results", self.name)
 
         command = CLEAN_RESULTS % (self.resdb, self.name)
@@ -225,17 +232,19 @@ with ten as (
         for s in self.systems:
             s.update(self.resdb)
 
-        print()
-        for s in self.systems:
-            log = utils.logfile(self.name, s.name)
-            out, _ = utils.run_command('tail', 'tail -n 3 %s' % log)
+        if tail:
+            print()
+            for s in self.systems:
+                log = utils.logfile(self.name, s.name)
+                out, _ = utils.run_command('tail', 'tail -n 3 %s' % log)
 
-            for line in out:
-                print(line)
+                for line in out:
+                    print(line)
 
-        print()
         if progress:
+            print()
             self.progress()
+
         return
 
     def cancel(self, system=None):

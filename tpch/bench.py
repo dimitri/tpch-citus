@@ -16,7 +16,7 @@ CLEAN_RESULTS += os.path.relpath(
 
 
 class Run():
-    def __init__(self, name):
+    def __init__(self, name, only_system=None):
         self.name = name
 
         self.cfn  = os.path.join(utils.outdir(name), RUNFILE)
@@ -31,7 +31,20 @@ class Run():
 
             self.systems = [system.System(self.name, sname, self.schedule)
                             for sname in self.sysnames]
+        else:
+            self.systems = []
 
+        # maybe target only a single given system
+        if only_system:
+            s = [s for s in self.systems if s.name == only_system]
+            if len(s) == 1:
+                self.systems = s
+            else:
+                self.log.error(
+                    "System name not found or not unique: %s", only_system)
+                self.systems = []
+
+        # and the result database
         self.resdb = self.tpch.results.dsn
 
     def register(self, systems, schedule):
@@ -209,7 +222,7 @@ with ten as (
         self.progress()
         return
 
-    def cancel(self):
+    def cancel(self, system=None):
         self.log.info("Cancelling loaders for %s", self.name)
         for s in self.systems:
             s.cancel()

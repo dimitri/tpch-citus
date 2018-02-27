@@ -75,11 +75,12 @@ def register(name, schedule, system):
 
 @cli.command()
 @click.option('--schedule')
+@click.option('--system')
 @click.argument('name')
-def benchmark(name, schedule):
+def benchmark(name, schedule, system):
     """Run the benchmarks"""
     # prepare the infra
-    r = bench.Run(name)
+    r = bench.Run(name, system)
     r.prepare(schedule)
     r.start(schedule)
     return
@@ -106,27 +107,30 @@ def list():
 
 @cli.command()
 @click.argument('name')
+@click.option('--system')
 @click.option('-f', is_flag=True, default=False)
-def tail(name, f):
+def tail(name, system, f):
     """Connects to the loaders and tail -f tpch.log"""
-    r = bench.Run(name)
+    r = bench.Run(name, system)
     r.tail(f)
     return
 
 
 @cli.command()
 @click.argument('name')
-def update(name):
+@click.option('--system')
+def update(name, system):
     """Fetch logs and intermediate results from loaders"""
-    r = bench.Run(name)
+    r = bench.Run(name, system)
     r.update()
 
 
 @cli.command()
 @click.argument('name')
-def cancel(name):
+@click.option('--system')
+def cancel(name, system):
     """Terminate loaders, cancel currently running benchmark"""
-    r = bench.Run(name)
+    r = bench.Run(name, system)
     r.cancel()
 
 

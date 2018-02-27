@@ -100,8 +100,9 @@ def list():
     p = Path('./aws.out/')
     for f in p.iterdir():
         if f.is_dir() and os.path.exists(os.path.join(f, 'run.ini')):
-            print(f.name)
-
+            r = bench.Run(f.name)
+            r.list()
+            print()
 
 @cli.command()
 @click.argument('name')

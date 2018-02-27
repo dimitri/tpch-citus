@@ -139,6 +139,41 @@ with ten as (
         print()
         return
 
+    def list(self):
+        running = [x for x in self.systems if x.loader.status() == 'running']
+
+        if running:
+            print("%s currently has %s systems registered, %s running"
+                  % (self.name, len(self.systems), len(running)))
+        else:
+            print("%s is not currently running" % self.name)
+
+        if running:
+            sql = """
+         select system,
+                max(job_number) as current_job_number,
+                max(job) as current_job,
+                sum(duration) as total_duration,
+                sum(count) filter(where count > 1) as queries
+           from results
+          where run = %s
+       group by system
+       order by system;
+    """
+            conn = psycopg2.connect(self.resdb)
+            curs = conn.cursor()
+
+            curs.execute(sql, (self.name,))
+            for system, job_n, job, duration, queries in curs.fetchall():
+                print("%10s: stage %s/%s in %s with %s queries "
+                      % (system,
+                         job_n,
+                         job,
+                         humanize.naturaldelta(duration),
+                         queries))
+
+        return
+
     def tail(self, follow=False):
         print("tail %s logs" % (self.name))
 

@@ -50,6 +50,22 @@ is local to your controler node (usually your laptop):
 Then edit `tpch.ini`, the `[results]` section should contain a `dsn` entry
 where you can put the connection URI `postgresql://tpch-results`.
 
+It's possible to list currently known benchmark runs:
+
+~~~
+$ ./control.py list
+enticingly_detect currently has 3 systems registered, 3 running
+    aurora: stage 13/vacuum analyze in a day with 184 queries 
+     citus: stage 16/vacuum analyze in a day with 1120 queries 
+       rds: stage 15/vacuum analyze in a day with 116 queries 
+
+engage_busily is not currently running
+
+promise_never currently has 2 systems registered, 2 running
+    aurora: stage 11/vacuum analyze in 9 hours with 36 queries 
+     citus: stage 8/vacuum analyze in 2 hours with 112 queries 
+~~~
+
 ## Running the benchmarks locally
 
 It's possible to use the TPC-H benchmarks driver with a local PostgreSQL

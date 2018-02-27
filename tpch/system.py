@@ -133,13 +133,21 @@ class System():
 
     def tail(self, follow=False):
         ip = self.loader.wait_for_public_ip()
-        command = "tail tpch.log"
+
         if follow:
             command = "tail -f tpch.log"
+            remote = cntl.BufferedRemoteCommand(ip, command)
+            remote.open()
 
-        out, _ = cntl.execute_remote_command(ip, command)
-        for line in out:
-            print(line)
+            # return an iterator object
+            return iter(remote)
+
+        else:
+            command = "tail tpch.log"
+            out, _ = cntl.execute_remote_command(ip, command)
+            for line in out:
+                print(line)
+
         return
 
     def status(self):

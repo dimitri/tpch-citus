@@ -174,11 +174,14 @@ with ten as (
 
         return
 
-    def tail(self, follow=False):
-        print("tail %s logs" % (self.name))
+    def tail(self, follow=True):
+        self.log.info("tail %s logs" % (self.name))
 
         if follow:
-            pass
+            tails = utils.roundrobin([s.tail(True) for s in self.systems])
+            for line in tails:
+                print(line)
+
         else:
             for s in self.systems:
                 s.tail()

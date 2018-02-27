@@ -1,10 +1,12 @@
 import os
 import shutil
 import os.path
+import time
 import shlex
 import logging
 import subprocess
 
+from itertools import chain, cycle, islice
 from paramiko.client import SSHClient, MissingHostKeyPolicy
 
 TOPDIR  = os.path.join(os.path.dirname(__file__), '..', '..')
@@ -131,3 +133,103 @@ def execute_remote_command(ip, command):
         print()
 
     return out, err
+
+
+class BufferedRemoteCommand():
+    def __init__(self, ip, command, username=REMOTE_USER):
+        self.ip = ip
+        self.command = command
+        self.username = username
+
+        self.client = SSHClient()
+        self.client.set_missing_host_key_policy(IgnoreHostKeyPolicy)
+
+        self.lines = []
+        self.current_line = None
+        return
+
+    def open(self):
+        self.client.connect(self.ip, username=self.username)
+
+        self.transport = self.client.get_transport()
+        self.channel = self.transport.open_session()
+        self.channel.set_combine_stderr(True)
+
+        self.channel.exec_command(self.command)
+
+        return
+
+    def read(self, nbytes=256):
+        if self.channel.recv_ready():
+            b = self.channel.recv(nbytes)
+
+            if len(b) == 0:
+                self.closed = True
+                return 0, None
+            else:
+                s = b.decode('utf-8')
+                return len(b), s
+
+        # try again later
+        return -1, None
+
+    def readlines(self):
+        nbytes, out = self.read()
+
+        if nbytes == 0:
+            # we're closed
+            lines = []
+
+        elif nbytes == -1:
+            # no luck this time, come later
+            time.sleep(1)
+            return self.readlines()
+
+        else:
+            lines = out.splitlines()
+
+            if self.current_line:
+                lines[0] = self.current_line + lines[0]
+
+            if out[-1] != '\n':
+                self.current_line = lines[-1]
+                lines = lines[:-1]
+
+        return nbytes, lines
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.channel.exit_status_ready():
+            self.rc = self.channel.recv_exit_status()
+            raise StopIteration
+
+        if not self.lines:
+            # fetch another round on the remote connection
+            nbytes, self.lines = self.readlines()
+
+            if nbytes == 0:
+                # we're done
+                raise StopIteration
+
+        line = self.lines.pop(0)
+        return line
+
+    def close(self):
+        return self.client.close()
+
+
+def roundrobin(iterables):
+    "roundrobin('ABC', 'D', 'EF') --> A D E B F C"
+    # Recipe credited to George Sakkis
+    num_active = len(iterables)
+    nexts = cycle(iter(it).__next__ for it in iterables)
+    while num_active:
+        try:
+            for next in nexts:
+                yield next()
+        except StopIteration:
+            # Remove the iterator we just exhausted from the cycle.
+            num_active -= 1
+            nexts = cycle(islice(nexts, num_active))

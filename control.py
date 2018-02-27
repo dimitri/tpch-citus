@@ -106,10 +106,11 @@ def list():
 
 @cli.command()
 @click.argument('name')
-def tail(name):
+@click.option('-f', is_flag=True, default=False)
+def tail(name, f):
     """Connects to the loaders and tail -f tpch.log"""
     r = bench.Run(name)
-    r.tail()
+    r.tail(f)
     return
 
 

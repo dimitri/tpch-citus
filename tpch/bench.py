@@ -99,7 +99,11 @@ class Run():
 
         return
 
-    def progress(self):
+    def results(self, verbose=False):
+        if verbose:
+            print("Results for benchmark %s:" % self.name)
+            self.print_specs()
+
         sql = """
 with ten as (
      select system, job, job_number, duration, steps, count
@@ -149,21 +153,11 @@ with ten as (
         print("Last known progress. Refresh with: ./control.py update %s"
               % self.name)
         print()
-        self.progress()
+        self.results()
         print()
         return
 
-    def list(self):
-        try:
-            running = [x
-                       for x in self.systems
-                       if x.loader.status() == 'running']
-        except Exception:
-            running = []
-
-        print("%s currently has %s systems registered, %s running"
-              % (self.name, len(self.systems), len(running)))
-
+    def print_specs(self):
         # two lines because of pycodestyle policies
         specs = self.tpch.schedules[self.schedule]
         specs = specs or self.tpch.jobs[self.schedule]
@@ -177,6 +171,21 @@ with ten as (
 
         print(" running schedule '%s': %s"
               % (self.schedule, ', '.join(specs)))
+
+        return
+
+    def list(self):
+        try:
+            running = [x
+                       for x in self.systems
+                       if x.loader.status() == 'running']
+        except Exception:
+            running = []
+
+        print("%s currently has %s systems registered, %s running"
+              % (self.name, len(self.systems), len(running)))
+
+        self.print_specs()
 
         sql = """
      select system,
@@ -221,7 +230,7 @@ with ten as (
         ready = [s.is_ready() for s in self.systems]
         return all(ready)
 
-    def update(self, tail=True, progress=True):
+    def update(self, tail=True, results=True):
         if not self.is_ready():
             return
 
@@ -244,9 +253,9 @@ with ten as (
                 for line in out:
                     print(line)
 
-        if progress:
+        if results:
             print()
-            self.progress()
+            self.results()
 
         return
 

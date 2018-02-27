@@ -116,13 +116,17 @@ def tail(name, system, f):
 @cli.command()
 @click.option('--name')
 @click.option('--system')
-@click.option('--running', is_flag=True, default=False)
+@click.option('--running', is_flag=True, default=True)
 def update(name, system, running):
     """Fetch logs and intermediate results from loaders"""
-    if running:
+    if name:
+        r = bench.Run(name, system)
+        r.update()
+
+    else:
         for name in tpch.control.utils.list_runs():
             run = bench.Run(name, system)
-            run.update(tail=False, progress=False)
+            run.update(tail=False, results=False)
 
         # rather than printing a large progress report for each running
         # benchmark we just updated, show the shorter list information
@@ -132,11 +136,24 @@ def update(name, system, running):
             if run.is_ready():
                 print()
                 run.list()
-    else:
-        r = bench.Run(name, system)
-        r.update()
 
     print()
+
+
+@cli.command()
+@click.option('--name')
+def results(name):
+    """Merge local results from loaders"""
+    if name:
+        run = bench.Run(name)
+        run.results(verbose=True)
+        print()
+
+    else:
+        for name in tpch.control.utils.list_runs():
+            run = bench.Run(name)
+            run.results(verbose=True)
+            print()
 
 
 @cli.command()

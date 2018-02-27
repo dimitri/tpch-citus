@@ -116,7 +116,7 @@ class IgnoreHostKeyPolicy(MissingHostKeyPolicy):
         return
 
 
-def execute_remote_command(ip, command):
+def execute_remote_command(ip, command, quiet=False):
     client = SSHClient()
     client.set_missing_host_key_policy(IgnoreHostKeyPolicy)
     client.connect(ip, username=REMOTE_USER)
@@ -128,7 +128,7 @@ def execute_remote_command(ip, command):
 
     client.close()
 
-    if rc != 0:
+    if rc != 0 and not quiet:
         log = logging.getLogger('TPCH')
 
         log.error("ssh command returned %d" % rc)

@@ -131,6 +131,23 @@ class System():
             # the loader isn't running yet, we're not ready
             return False
 
+    def tpch_is_running(self):
+        if self.is_ready:
+            ip = self.loader.public_ip()
+            command = "cat /tmp/TPCH.pid"
+            out, _ = cntl.execute_remote_command(ip, command, quiet=True)
+            try:
+                if out and len(out) == 1:
+                    pid = int(out[0])
+                    return True
+            except ValueError:
+                # not an integer in that file?!
+                return False
+            except RuntimeError:
+                # e.g. file does not exists
+                return False
+        return False
+
     def tail(self, follow=False):
         ip = self.loader.wait_for_public_ip()
 

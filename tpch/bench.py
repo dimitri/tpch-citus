@@ -176,14 +176,19 @@ with ten as (
 
     def list(self):
         try:
-            running = [x
-                       for x in self.systems
-                       if x.loader.status() == 'running']
+            running = [s for s in self.systems if s.tpch_is_running()]
         except Exception:
             running = []
 
-        print("%s currently has %s systems registered, %s running"
-              % (self.name, len(self.systems), len(running)))
+        if running:
+            warn = ""
+            if len(running) != len(self.systems):
+                warn = "!"
+            print("%s currently has %s systems registered, %s running%s"
+                  % (self.name, len(self.systems), len(running), warn))
+        else:
+            print("%s ran with %s systems registered"
+                  % (self.name, len(self.systems)))
 
         self.print_specs()
 
@@ -204,9 +209,13 @@ with ten as (
 
         curs.execute(sql, (self.name,))
         for system, job_n, job, duration, step, queries in curs.fetchall():
+            current_step = ""
+            if step:
+                current_step = step.split('..')[1]
+
             print("%10s[%2s]: stage %s/%s in %s with %s queries "
                   % (system,
-                     step.split('..')[1],
+                     current_step,
                      job_n,
                      job,
                      humanize.naturaldelta(duration),

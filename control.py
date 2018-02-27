@@ -48,8 +48,8 @@ control scripts uses rsync and ssh to control the loader instances.
 
 @cli.command()
 @click.option("--name")
-@click.argument('infra', type=click.Path(exists=True))
-@click.argument('config', type=click.Path(exists=True))
+@click.option('--infra', type=click.Path(exists=True), required=True)
+@click.option('--config', type=click.Path(exists=True), required=True)
 def setup(infra, config, name):
     """Set-up a TPC-H benchmark: infra.ini, tpch.ini"""
     if not name:

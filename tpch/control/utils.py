@@ -203,6 +203,10 @@ class BufferedRemoteCommand():
                 self.current_line = lines[-1]
                 lines = lines[:-1]
 
+            if not lines:
+                # we got a chunk of a line, not a whole one, keep buffering
+                return self.readlines()
+
         return nbytes, lines
 
     def __iter__(self):

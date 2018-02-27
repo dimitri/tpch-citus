@@ -141,7 +141,8 @@ with ten as (
 
         for s in self.systems:
             if s.loader.status() == 'running':
-                print("ssh -l ec2-user %s tail tpch.log" % s.loader.public_ip())
+                print("ssh -l ec2-user %s tail tpch.log"
+                      % s.loader.public_ip())
                 s.tail()
                 print()
 
@@ -153,52 +154,54 @@ with ten as (
         return
 
     def list(self):
-        running = [x for x in self.systems if x.loader.status() == 'running']
+        try:
+            running = [x
+                       for x in self.systems
+                       if x.loader.status() == 'running']
+        except Exception:
+            running = []
 
-        if running:
-            print("%s currently has %s systems registered, %s running"
-                  % (self.name, len(self.systems), len(running)))
-        else:
-            print("%s is not currently running" % self.name)
+        print("%s currently has %s systems registered, %s running"
+              % (self.name, len(self.systems), len(running)))
 
-        if running:
-            specs = self.tpch.schedules[self.schedule] or \
-                    self.tpch.jobs[self.schedule]
+        # two lines because of pycodestyle policies
+        specs = self.tpch.schedules[self.schedule]
+        specs = specs or self.tpch.jobs[self.schedule]
 
-            scale = self.tpch.scale
+        scale = self.tpch.scale
 
-            print(" SF %d with %d steps of %s each, total %s"
-                  % (scale.factor, scale.children,
-                     humanize.naturalsize(scale.factor / scale.children * 10**9),
-                     humanize.naturalsize(scale.factor * 10**9)))
+        print(" SF %d with %d steps of %s each, total %s"
+              % (scale.factor, scale.children,
+                 humanize.naturalsize(scale.factor / scale.children * 10**9),
+                 humanize.naturalsize(scale.factor * 10**9)))
 
-            print(" running schedule '%s': %s"
-                  % (self.schedule, ', '.join(specs)))
+        print(" running schedule '%s': %s"
+              % (self.schedule, ', '.join(specs)))
 
-            sql = """
-         select system,
-                max(job_number) as current_job_number,
-                max(job) as current_job,
-                sum(duration) as total_duration,
-                max(steps) filter(where steps is not null) as step,
-                sum(count) filter(where count > 1) as queries
-           from results
-          where run = %s
-       group by system
-       order by max(job_number) desc;
-    """
-            conn = psycopg2.connect(self.resdb)
-            curs = conn.cursor()
+        sql = """
+     select system,
+            max(job_number) as current_job_number,
+            max(job) as current_job,
+            sum(duration) as total_duration,
+            max(steps) filter(where steps is not null) as step,
+            sum(count) filter(where count > 1) as queries
+       from results
+      where run = %s
+   group by system
+   order by max(job_number) desc;
+"""
+        conn = psycopg2.connect(self.resdb)
+        curs = conn.cursor()
 
-            curs.execute(sql, (self.name,))
-            for system, job_n, job, duration, step, queries in curs.fetchall():
-                print("%10s[%2s]: stage %s/%s in %s with %s queries "
-                      % (system,
-                         step.split('..')[1],
-                         job_n,
-                         job,
-                         humanize.naturaldelta(duration),
-                         queries))
+        curs.execute(sql, (self.name,))
+        for system, job_n, job, duration, step, queries in curs.fetchall():
+            print("%10s[%2s]: stage %s/%s in %s with %s queries "
+                  % (system,
+                     step.split('..')[1],
+                     job_n,
+                     job,
+                     humanize.naturaldelta(duration),
+                     queries))
 
         return
 

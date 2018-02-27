@@ -101,6 +101,7 @@ def list():
         run.list()
         print()
 
+
 @cli.command()
 @click.argument('name')
 @click.option('--system')
@@ -121,7 +122,7 @@ def update(name, system, running):
     if running:
         for name in tpch.control.utils.list_runs():
             run = bench.Run(name, system)
-            run.update(tail=False,progress=False)
+            run.update(tail=False, progress=False)
 
         # rather than printing a large progress report for each running
         # benchmark we just updated, show the shorter list information
@@ -139,14 +140,27 @@ def update(name, system, running):
 
 
 @cli.command()
-@click.argument('name')
+@click.option('--name')
 def merge_results(name):
     """Merge local results from loaders"""
-    r = bench.Run(name)
-    r.merge_results()
-    print()
-    r.list()
-    print()
+    if name:
+        run = bench.Run(name)
+        run.merge_results()
+        print()
+        run.list()
+        print()
+
+    else:
+        for name in tpch.control.utils.list_runs():
+            run = bench.Run(name)
+            run.merge_results()
+        print()
+
+        for name in tpch.control.utils.list_runs():
+            run = bench.Run(name)
+            run.list()
+            print()
+
 
 @cli.command()
 @click.argument('name')

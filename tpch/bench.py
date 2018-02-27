@@ -162,24 +162,39 @@ with ten as (
             print("%s is not currently running" % self.name)
 
         if running:
+            specs = self.tpch.schedules[self.schedule] or \
+                    self.tpch.jobs[self.schedule]
+
+            scale = self.tpch.scale
+
+            print(" SF %d with %d steps of %s each, total %s"
+                  % (scale.factor, scale.children,
+                     humanize.naturalsize(scale.factor / scale.children * 10**9),
+                     humanize.naturalsize(scale.factor * 10**9)))
+
+            print(" running schedule '%s': %s"
+                  % (self.schedule, ', '.join(specs)))
+
             sql = """
          select system,
                 max(job_number) as current_job_number,
                 max(job) as current_job,
                 sum(duration) as total_duration,
+                max(steps) filter(where steps is not null) as step,
                 sum(count) filter(where count > 1) as queries
            from results
           where run = %s
        group by system
-       order by system;
+       order by max(job_number) desc;
     """
             conn = psycopg2.connect(self.resdb)
             curs = conn.cursor()
 
             curs.execute(sql, (self.name,))
-            for system, job_n, job, duration, queries in curs.fetchall():
-                print("%10s: stage %s/%s in %s with %s queries "
+            for system, job_n, job, duration, step, queries in curs.fetchall():
+                print("%10s[%s]: stage %s/%s in %s with %s queries "
                       % (system,
+                         step.split('..')[1],
                          job_n,
                          job,
                          humanize.naturaldelta(duration),
@@ -199,7 +214,7 @@ with ten as (
             for s in self.systems:
                 s.tail()
 
-    def update(self):
+    def update(self, progress=True):
         self.log.info("update %s logs and results", self.name)
 
         command = CLEAN_RESULTS % (self.resdb, self.name)
@@ -219,7 +234,8 @@ with ten as (
                 print(line)
 
         print()
-        self.progress()
+        if progress:
+            self.progress()
         return
 
     def cancel(self, system=None):

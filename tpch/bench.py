@@ -192,7 +192,7 @@ with ten as (
 
             curs.execute(sql, (self.name,))
             for system, job_n, job, duration, step, queries in curs.fetchall():
-                print("%10s[%s]: stage %s/%s in %s with %s queries "
+                print("%10s[%2s]: stage %s/%s in %s with %s queries "
                       % (system,
                          step.split('..')[1],
                          job_n,

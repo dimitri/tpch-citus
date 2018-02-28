@@ -6,6 +6,7 @@ import click
 import shutil
 import os.path
 import logging
+import zipfile
 
 from tpch import bench
 from tpch import system
@@ -210,6 +211,109 @@ def terminate(name):
     """Terminate loaders, delete database instances"""
     r = bench.Run(name)
     r.terminate()
+
+@cli.command()
+@click.argument('archive', type=click.Path())
+@click.argument('name', nargs=-1)
+@click.option('--force', is_flag=True, default=False)
+@click.option('--verbose', is_flag=True, default=False)
+def export(archive, name, verbose, force):
+    "Export bench results into an archive file."
+    if force and os.path.exists(archive):
+        os.remove(archive)
+
+    try:
+        with zipfile.ZipFile(archive, mode='x') as zip:
+            if name:
+                # the --name argument can be used several times
+                # so that we get a list of names here
+                namelist = name
+
+                for name in namelist:
+                    run = bench.Run(name)
+                    print("Archiving results for %s" % run.name)
+                    for fn in run.list_result_files():
+                        if verbose:
+                            print("  %s" % fn)
+                        zip.write(fn)
+            else:
+                for name in tpch.control.utils.list_runs():
+                    run = bench.Run(name)
+                    print("Archiving results for %s" % run.name)
+                    for fn in run.list_result_files():
+                        if verbose:
+                            print("  %s" % fn)
+                        zip.write(fn)
+
+    except FileExistsError as err:
+        print("Creation of %s failed: %s" % (archive, err))
+
+
+@cli.command(name='import')
+@click.argument('archive', type=click.Path(exists=True))
+@click.option('--force', is_flag=True, default=False)
+@click.option('--verbose', is_flag=True, default=False)
+@click.option('--db', default=RES_DB_CONNSTR)
+def import_(archive, force, verbose, db):
+    "Import an archive of results"
+    log = logging.getLogger('TPCH')
+    log.info("Extracting TPCH results from archive %s", archive)
+
+    try:
+        tpch.control.utils.maybe_install_resdb(db)
+    except Exception as err:
+        print("Can't connect to %s: %s" % (db, err))
+        return
+
+    runs = []
+    skipped = []
+    with zipfile.ZipFile(archive, mode='r') as zip:
+        current_run = None
+        for fn in zip.namelist():
+            if fn[0:8] != 'aws.out/':
+                print("ignoring file %s" % fn)
+            relpath = fn[8:]
+
+            run = relpath.split('/')[0]
+
+            if run != current_run:
+                current_run = run
+                runs.append(current_run)
+                if verbose:
+                    print("Importing results for run '%s'" % current_run)
+
+            if os.path.exists(fn) and not force:
+                if verbose:
+                    print("  skipping %s" % fn)
+                if current_run not in skipped:
+                    skipped.append(current_run)
+                continue
+
+            if verbose:
+                print("  %s" % fn)
+
+            zip.extract(fn)
+
+    for run in runs:
+        if run not in skipped:
+            b = bench.Run(run)
+            b.merge_results()
+
+        else:
+            if verbose:
+                print("Skipped files in run '%s', use --force to override"
+                      % run)
+
+    print()
+    for run in runs:
+        if run not in skipped:
+            b = bench.Run(run)
+            b.list()
+            print()
+            b.results(verbose=True)
+            print()
+
+    return
 
 
 if __name__ == '__main__':

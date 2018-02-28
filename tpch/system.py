@@ -267,16 +267,13 @@ class System():
                       % (self.name, ip, MAKE_RES_DUMP))
         cntl.execute_remote_command(ip, MAKE_RES_DUMP)
 
+        copy_files = self.list_copy_files()
         resdir = os.path.relpath(cntl.resdir(self.run))
 
-        for copy in DUMP_FILES:
-            # local copy filename
-            tab, _ = os.path.splitext(copy)
-            lcfn = os.path.join(resdir, '%s.%s.copy' % (self.name, tab))
+        for src, dest in copy_files.items():
             self.log.info('%s: downloading results in %s',
-                          self.name,
-                          os.path.relpath(lcfn))
-            cntl.download(ip, copy, lcfn)
+                          self.name, os.path.relpath(dest))
+            cntl.download(ip, src, dest)
         return
 
     def merge_results(self, resdb):
@@ -289,3 +286,29 @@ class System():
         cntl.run_command("Merge Results", command)
 
         return
+
+    def list_copy_files(self):
+        copy_files = {}
+
+        resdir = os.path.relpath(cntl.resdir(self.run))
+
+        for copy in DUMP_FILES:
+            # local copy filename
+            tab, _ = os.path.splitext(copy)
+            lcfn = os.path.join(resdir, '%s.%s.copy' % (self.name, tab))
+
+            copy_files[copy] = lcfn
+
+        return copy_files
+
+    def list_result_files(self):
+        files = []
+
+        logfile = cntl.logfile(self.run, self.name)
+        files.append(os.path.relpath(logfile))
+
+        copy_files = self.list_copy_files()
+        for _, copy in copy_files.items():
+            files.append(os.path.relpath(copy))
+
+        return files

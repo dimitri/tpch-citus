@@ -173,7 +173,7 @@ with ten as (
                  humanize.naturalsize(scale.factor / scale.children * 10**9),
                  humanize.naturalsize(scale.factor * 10**9)))
 
-        print(" running schedule %s[%s stages]: %s"
+        print(" schedule %s[%s stages]: %s"
               % (self.schedule, stages, ', '.join(specs)))
 
         return stages
@@ -290,3 +290,19 @@ with ten as (
         self.log.info("Terminating the whole infra for %s", self.name)
         for s in self.systems:
             s.terminate()
+
+    def list_result_files(self):
+        files = []
+
+        bench_ini_files = [os.path.join(utils.outdir(self.name), 'run.ini'),
+                           utils.tpch_ini_path(self.name),
+                           utils.infra_ini_path(self.name)]
+
+        for ini in bench_ini_files:
+            relpath = os.path.relpath(ini)
+            files.append(relpath)
+
+        for s in self.systems:
+            files += s.list_result_files()
+
+        return files

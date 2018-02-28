@@ -16,7 +16,7 @@ CLEAN_RESULTS += os.path.relpath(
 
 
 class Run():
-    def __init__(self, name, only_system=None):
+    def __init__(self, name, only_system=None, resdb=None):
         self.name = name
 
         self.cfn  = os.path.join(utils.outdir(name), RUNFILE)
@@ -45,7 +45,10 @@ class Run():
                 self.systems = []
 
         # and the result database
-        self.resdb = self.tpch.results.dsn
+        if resdb:
+            self.resdb = resdb
+        else:
+            self.resdb = self.tpch.results.dsn
 
     def register(self, systems, schedule):
         self.sysnames = systems

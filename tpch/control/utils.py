@@ -5,6 +5,7 @@ import time
 import shlex
 import logging
 import subprocess
+import psycopg2
 
 from pathlib import Path
 from itertools import chain, cycle, islice
@@ -12,6 +13,9 @@ from paramiko.client import SSHClient, MissingHostKeyPolicy
 
 TOPDIR  = os.path.join(os.path.dirname(__file__), '..', '..')
 OUTDIR  = os.path.join(TOPDIR, 'aws.out')
+
+RESDB_SCHEMA = os.path.join(TOPDIR, 'schema', 'tracking.sql')
+RESDB_PSQL   = 'psql -X -a -d %%s -f %s' % RESDB_SCHEMA
 
 REMOTE_USER = 'ec2-user'
 RSYNC_OPTS  = '--exclude-from "rsync.exclude"'
@@ -245,3 +249,28 @@ def roundrobin(iterables):
             # Remove the iterator we just exhausted from the cycle.
             num_active -= 1
             nexts = cycle(islice(nexts, num_active))
+
+
+def maybe_install_resdb(resdb):
+    conn = psycopg2.connect(resdb)
+
+    sql = """
+select count(*)
+  from pg_class
+ where relname in ('run',
+                   'job',
+                   'query',
+                   'results',
+                   'qpm',
+                   'query_timings')
+"""
+    curs = conn.cursor()
+    curs.execute(sql)
+    count, = curs.fetchone()
+
+    if count != 6:
+        log = logging.getLogger('TPCH')
+        log.info("Installing the tracking schema in %s", resdb)
+        run_command('tracking.sql', RESDB_PSQL % resdb)
+
+    return

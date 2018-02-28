@@ -94,10 +94,11 @@ def status(name):
 
 
 @cli.command()
-def list():
+@click.option('--db', default=RES_DB_CONNSTR)
+def list(db):
     """List currently known benchmarks."""
     for name in tpch.control.utils.list_runs():
-        run = bench.Run(name)
+        run = bench.Run(name, resdb=db)
         run.list()
         print()
 
@@ -117,22 +118,29 @@ def tail(name, system, f):
 @click.option('--name')
 @click.option('--system')
 @click.option('--running', is_flag=True, default=True)
-def update(name, system, running):
+@click.option('--db', default=RES_DB_CONNSTR)
+def update(name, system, running, db):
     """Fetch logs and intermediate results from loaders"""
+    try:
+        tpch.control.utils.maybe_install_resdb(db)
+    except Exception as err:
+        print("Can't connect to %s: %s" % (db, err))
+        return
+
     if name:
-        r = bench.Run(name, system)
+        r = bench.Run(name, system, resdb=db)
         r.update()
 
     else:
         for name in tpch.control.utils.list_runs():
-            run = bench.Run(name, system)
+            run = bench.Run(name, system, resdb=db)
             run.update(tail=False, results=False)
 
         # rather than printing a large progress report for each running
         # benchmark we just updated, show the shorter list information
         # screen at the end.
         for name in tpch.control.utils.list_runs():
-            run = bench.Run(name)
+            run = bench.Run(name, resdb=db)
             if run.is_ready():
                 print()
                 run.list()
@@ -142,26 +150,34 @@ def update(name, system, running):
 
 @cli.command()
 @click.option('--name')
-def results(name):
+@click.option('--db', default=RES_DB_CONNSTR)
+def results(name, db):
     """Merge local results from loaders"""
     if name:
-        run = bench.Run(name)
+        run = bench.Run(name, resdb=db)
         run.results(verbose=True)
         print()
 
     else:
         for name in tpch.control.utils.list_runs():
-            run = bench.Run(name)
+            run = bench.Run(name, resdb)
             run.results(verbose=True)
             print()
 
 
 @cli.command()
 @click.option('--name')
-def merge_results(name):
+@click.option('--db', default=RES_DB_CONNSTR)
+def merge_results(name, db):
     """Merge local results from loaders"""
+    try:
+        tpch.control.utils.maybe_install_resdb(db)
+    except Exception as err:
+        print("Can't connect to %s: %s" % (db, err))
+        return
+
     if name:
-        run = bench.Run(name)
+        run = bench.Run(name, resdb=db)
         run.merge_results()
         print()
         run.list()
@@ -169,12 +185,12 @@ def merge_results(name):
 
     else:
         for name in tpch.control.utils.list_runs():
-            run = bench.Run(name)
+            run = bench.Run(name, resdb=db)
             run.merge_results()
         print()
 
         for name in tpch.control.utils.list_runs():
-            run = bench.Run(name)
+            run = bench.Run(name, resdb=db)
             run.list()
             print()
 

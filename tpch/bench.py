@@ -173,8 +173,8 @@ with ten as (
                  humanize.naturalsize(scale.factor / scale.children * 10**9),
                  humanize.naturalsize(scale.factor * 10**9)))
 
-        print(" running schedule '%s': %s, with %s stages"
-              % (self.schedule, ', '.join(specs), stages))
+        print(" running schedule %s[%s stages]: %s"
+              % (self.schedule, stages, ', '.join(specs)))
 
         return stages
 

@@ -158,11 +158,11 @@ def list():
     rdslist = client.describe_db_instances()
 
     if 'DBInstances' in rdslist:
-        print("%20s %20s %20s %10s" % ("Instance Id", "Instance Class",
+        print("%30s %20s %20s %10s" % ("Instance Id", "Instance Class",
                                        "Engine", "Status"))
-        print("%20s %20s %20s %10s" % ("-" * 20, "-" * 20, "-" * 20, "-" * 10))
+        print("%30s %20s %20s %10s" % ("-" * 30, "-" * 20, "-" * 20, "-" * 10))
         for instance in rdslist['DBInstances']:
-            print("%20s %20s %20s %10s" % (instance['DBInstanceIdentifier'],
+            print("%30s %20s %20s %10s" % (instance['DBInstanceIdentifier'],
                                            instance['DBInstanceClass'],
                                            instance['Engine'],
                                            instance['DBInstanceStatus']))
@@ -284,10 +284,10 @@ def list():
     clist = client.describe_db_clusters()
 
     if 'DBClusters' in clist:
-        print("%20s %12s %20s" % ("Cluster Id", "Status", "Engine"))
-        print("%20s %12s %20s" % ("-" * 20, "-" * 12, "-" * 20))
+        print("%30s %12s %20s" % ("Cluster Id", "Status", "Engine"))
+        print("%30s %12s %20s" % ("-" * 30, "-" * 12, "-" * 20))
         for cluster in clist['DBClusters']:
-            print("%20s %12s %20s" % (cluster['DBClusterIdentifier'],
+            print("%30s %12s %20s" % (cluster['DBClusterIdentifier'],
                                       cluster['Status'],
                                       cluster['Engine']))
     print()

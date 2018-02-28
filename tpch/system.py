@@ -263,7 +263,8 @@ class System():
         # fetch current results
         self.log.info('%s: dumping and fetching current results',
                       self.name)
-        self.log.info(MAKE_RES_DUMP)
+        self.log.info("%s: ssh -l ec2-user %s %s"
+                      % (self.name, ip, MAKE_RES_DUMP))
         cntl.execute_remote_command(ip, MAKE_RES_DUMP)
 
         resdir = os.path.relpath(cntl.resdir(self.run))

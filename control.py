@@ -160,7 +160,7 @@ def results(name, db):
 
     else:
         for name in tpch.control.utils.list_runs():
-            run = bench.Run(name, resdb)
+            run = bench.Run(name, resdb=db)
             run.results(verbose=True)
             print()
 

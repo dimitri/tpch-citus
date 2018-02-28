@@ -99,6 +99,39 @@ class Setup():
 
         return jobs
 
+    def stages(self, schedule, stages=0, kind='pgsql'):
+        "Return how many stages we have in given schedule"
+        if isinstance(schedule, list):
+            return stages + sum([self.stages(job) for job in schedule])
+
+        elif schedule in self.schedules:
+            for job in self.schedules[schedule]:
+                stages += self.stages(job)
+
+            return stages
+
+        elif schedule in self.jobs:
+            if schedule == 'initdb':
+                # Initdb is a complex job with plenty steps, see schedule.py
+                if kind == 'pgsql':
+                    c = len(self.pgsql.constraints)
+                elif kind == 'citus':
+                    c = len(self.citus.constraints)
+                else:
+                    c = 0
+                return stages + 4 + c
+
+            elif type(self.jobs[schedule]).__name__ == 'Load':
+                # Load jobs register both the load and the vacuum
+                return stages + 2
+
+            else:
+                # Other jobs are one stage
+                return stages + 1
+
+        else:
+            return stages
+
     def to_json(self):
         config = {}
         for section in self.conf:

@@ -164,6 +164,7 @@ with ten as (
         # two lines because of pycodestyle policies
         specs = self.tpch.schedules[self.schedule]
         specs = specs or self.tpch.jobs[self.schedule]
+        stages = self.tpch.stages(self.schedule)
 
         scale = self.tpch.scale
 
@@ -172,10 +173,10 @@ with ten as (
                  humanize.naturalsize(scale.factor / scale.children * 10**9),
                  humanize.naturalsize(scale.factor * 10**9)))
 
-        print(" running schedule '%s': %s"
-              % (self.schedule, ', '.join(specs)))
+        print(" running schedule '%s': %s, with %s stages"
+              % (self.schedule, ', '.join(specs), stages))
 
-        return
+        return stages
 
     def list(self):
         try:
@@ -193,7 +194,7 @@ with ten as (
             print("%s ran with %s systems registered"
                   % (self.name, len(self.systems)))
 
-        self.print_specs()
+        stages = self.print_specs()
 
         sql = """
      select system,
@@ -219,10 +220,11 @@ with ten as (
                                    * self.tpch.scale.factor
                                    / self.tpch.scale.children)
 
-            print("%10s[%2s]: stage %s/%s in %s with %s queries "
+            print("%10s[%2s]: stage %s/%s (%s) in %s with %s queries "
                   % (system,
                      current_step,
                      job_n,
+                     stages,
                      job,
                      humanize.naturaldelta(duration),
                      queries))

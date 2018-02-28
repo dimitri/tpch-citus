@@ -211,7 +211,10 @@ with ten as (
         for system, job_n, job, duration, step, queries in curs.fetchall():
             current_step = ""
             if step:
-                current_step = step.split('..')[1]
+                current_step = int(step.split('..')[1])
+                current_step = int(current_step
+                                   * self.tpch.scale.factor
+                                   / self.tpch.scale.children)
 
             print("%10s[%2s]: stage %s/%s in %s with %s queries "
                   % (system,

@@ -195,15 +195,18 @@ with ten as (
                      humanize.naturaldelta(secs), steps, count))
         return
 
-    def status(self):
+    def status(self, with_results=True):
         self.list()
         print()
         self.list_infra()
         print()
         self.tail()
         print()
-        self.results()
-        print()
+
+        if with_results:
+            self.results()
+            print()
+
         return
 
     def tpch_is_running(self):

@@ -86,11 +86,23 @@ def benchmark(name, schedule, system):
 
 
 @cli.command()
-@click.option('--name', required=True)
-def status(name):
+@click.option('--name')
+@click.option('--running', is_flag=True, default=False)
+@click.option('--db', default=RES_DB_CONNSTR)
+def status(name, running, db):
     """Display infra status and becnhmark logs"""
-    r = bench.Run(name)
-    r.status()
+    if name:
+        r = bench.Run(name, resdb=db)
+        r.status(with_results=False)
+
+    else:
+        for name in tpch.control.utils.list_runs():
+            run = bench.Run(name, resdb=db)
+            if running:
+                if run.is_ready():
+                    run.status(with_results=False)
+            else:
+                run.status(with_results=False)
     return
 
 
@@ -195,7 +207,8 @@ def update(name, system, running, db):
 @cli.command()
 @click.option('--name')
 @click.option('--db', default=RES_DB_CONNSTR)
-def results(name, db):
+@click.option('--running', is_flag=True, default=False)
+def results(name, db, running):
     """Show local benchmark results"""
     if name:
         run = bench.Run(name, resdb=db)
@@ -205,8 +218,15 @@ def results(name, db):
     else:
         for name in tpch.control.utils.list_runs():
             run = bench.Run(name, resdb=db)
-            run.results(verbose=True)
-            print()
+
+            if running:
+                if run.is_ready():
+                    run.results(verbose=True)
+                    print()
+            else:
+                run.results(verbose=True)
+                print()
+    return
 
 
 @cli.command()

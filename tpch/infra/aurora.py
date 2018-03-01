@@ -62,9 +62,19 @@ class Cluster():
             return self.conn.describe_db_clusters(
                 DBClusterIdentifier = self.id)
 
+    def status(self):
+        if self.id:
+            try:
+                self.data = self.conn.describe_db_clusters(
+                    DBClusterIdentifier = self.id)
+                return self.data['DBClusters'][0]['Status']
+            except self.conn.exceptions.DBClusterNotFoundFault:
+                return 'Not Found'
+
     def endpoint(self):
-        desc = self.describe()
-        return desc['DBClusters'][0]['Endpoint']
+        if self.id:
+            desc = self.describe()
+            return desc['DBClusters'][0]['Endpoint']
 
     def delete(self):
         res = self.conn.delete_db_cluster(
@@ -115,13 +125,14 @@ class Aurora(rds.RDS):
         return self.id
 
     def dsn(self):
-        return "postgresql://%s:%s@%s:%s/%s" % (
-            self.cluster.MasterUsername,
-            self.cluster.MasterUserPassword,
-            self.cluster.endpoint(),
-            self.cluster.Port,
-            self.conf.aurora.dbname
-        )
+        if self.cluster.status() == 'available':
+            return "postgresql://%s:%s@%s:%s/%s" % (
+                self.cluster.MasterUsername,
+                self.cluster.MasterUserPassword,
+                self.cluster.endpoint(),
+                self.cluster.Port,
+                self.conf.aurora.dbname
+            )
 
     def delete(self):
         instance_ret = self.conn.delete_db_instance(

@@ -116,6 +116,10 @@ class System():
         else:
             raise ValueError("Unknown system name: %s", self.name)
 
+    def has_infra(self):
+        return (self.ljson and os.path.exists(self.ljson)) \
+            or (self.djson and os.path.exists(self.djson))
+
     def is_ready(self):
         if self.loader.status() == 'running':
             ip = self.loader.public_ip()
@@ -132,7 +136,7 @@ class System():
             return False
 
     def tpch_is_running(self):
-        if self.is_ready:
+        if self.is_ready():
             ip = self.loader.public_ip()
             command = "cat /tmp/TPCH.pid"
             out, _ = cntl.execute_remote_command(ip, command, quiet=True)
@@ -149,21 +153,22 @@ class System():
         return False
 
     def tail(self, follow=False):
-        ip = self.loader.wait_for_public_ip()
+        if self.is_ready():
+            ip = self.loader.wait_for_public_ip()
 
-        if follow:
-            command = "tail -f tpch.log"
-            remote = cntl.BufferedRemoteCommand(ip, command)
-            remote.open()
+            if follow:
+                command = "tail -f tpch.log"
+                remote = cntl.BufferedRemoteCommand(ip, command)
+                remote.open()
 
-            # return an iterator object
-            return iter(remote)
+                # return an iterator object
+                return iter(remote)
 
-        else:
-            command = "tail tpch.log"
-            out, _ = cntl.execute_remote_command(ip, command)
-            for line in out:
-                print(line)
+            else:
+                command = "tail tpch.log"
+                out, _ = cntl.execute_remote_command(ip, command)
+                for line in out:
+                    print(line)
 
         return
 
@@ -212,25 +217,28 @@ class System():
     def terminate(self):
         self.cancel()
 
-        if self.db:
+        if self.db and os.path.exists(self.djson):
             self.log.info("%s: deleting database instance", self.name)
             self.db.delete()
 
-        self.status()
         return
 
     def cancel(self):
         # terminate only the loader
-        self.log.info("%s: terminating loader %s", self.name, self.loader.id)
-        print(self.loader.terminate())
+        if os.path.exists(self.ljson):
+            self.log.info("%s: terminating loader %s", self.name, self.loader.id)
+            print(self.loader.terminate())
         return
 
     def update(self, resdb):
-        if self.is_ready():
+        if self.loader.status() == 'running':
             ip = self.loader.public_ip()
 
             self.fetch_logs(ip)
             self.fetch_results(ip)
+            self.merge_results(resdb)
+
+        else:
             self.merge_results(resdb)
 
         return

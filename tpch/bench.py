@@ -8,6 +8,7 @@ from . import system
 from .control import setup
 from .control import utils
 from .run import setup as tpch
+from .infra import setup as infra
 
 RUNFILE = 'run.ini'
 CLEAN_RESULTS  = 'psql -a -d %s -v run=%s -f '
@@ -22,6 +23,7 @@ class Run():
         self.cfn  = os.path.join(utils.outdir(name), RUNFILE)
         self.conf = setup.Setup(self.cfn)
         self.tpch = tpch.Setup(utils.tpch_ini_path(self.name))
+        self.infra = infra.Setup(utils.infra_ini_path(self.name))
 
         self.log = logging.getLogger('TPCH')
 
@@ -67,6 +69,46 @@ class Run():
            self.schedule not in self.tpch.jobs:
             raise ValueError("Unknown benchmark schedule/job %s",
                              self.schedule)
+
+    def has_infra(self):
+        return any([s.has_infra() for s in self.systems])
+
+    def list_infra(self):
+        if not self.has_infra():
+            return
+
+        print("Infra for benchmark %s:" % self.name)
+        print()
+        print("%15s | %20s | %15s | %15s | %15s"
+              % ("Resource", "AWS Id", "Type", "Status", "Address"))
+        print("%15s-|-%20s-|-%15s-|-%15s-|-%15s"
+              % ("-" * 15, "-" * 20, "-" * 15, "-" * 15, "-" * 15))
+
+        for s in self.systems:
+            if os.path.exists(s.ljson):
+                loader = s.get_loader()
+                print("%15s | %20s | %15s | %15s | %15s"
+                      % ("%s loader" % s.name,
+                         loader.id,
+                         loader.get_instance_type(),
+                         loader.status(),
+                         loader.public_ip()))
+
+        if 'rds' in [s.name for s in self.systems]:
+            s = [s for s in self.systems if s.name == 'rds'][0]
+            if os.path.exists(s.djson):
+                db = s.get_db()
+                print("%15s | %20s | %15s | %15s |"
+                      % ("RDS", db.id, db.get_instance_class(), db.status()))
+
+        if 'aurora' in [s.name for s in self.systems]:
+            s = [s for s in self.systems if s.name == 'aurora'][0]
+            if os.path.exists(s.djson):
+                db = s.get_db()
+                print("%15s | %20s | %15s | %15s |"
+                      % ("Aurora", db.id, db.get_instance_class(), db.status()))
+
+        return
 
     def prepare(self, schedule):
         if schedule:
@@ -137,28 +179,21 @@ with ten as (
         return
 
     def status(self):
-        print(self.name)
-        print('config:   %s' % os.path.relpath(self.cfn))
-        print('schedule: %s' % self.schedule)
-        print('systems:  %s' % (' '.join([s.name for s in self.systems])))
+        self.list()
         print()
-        for s in self.systems:
-            s.status()
-            print()
+        self.list_infra()
+        print()
+        self.tail()
 
-        for s in self.systems:
-            if s.loader.status() == 'running':
-                print("ssh -l ec2-user %s tail tpch.log"
-                      % s.loader.public_ip())
-                s.tail()
-                print()
-
-        print("Last known progress. Refresh with: ./control.py update %s"
+        print("Last known progress. Refresh with: ./control.py update --name %s"
               % self.name)
         print()
         self.results()
         print()
         return
+
+    def tpch_is_running(self):
+        return any([s.tpch_is_running() for s in self.systems])
 
     def print_specs(self):
         # two lines because of pycodestyle policies
@@ -231,21 +266,24 @@ with ten as (
 
         return
 
-    def tail(self, follow=True):
+    def tail(self, follow=False):
         self.log.info("tail %s logs" % (self.name))
 
         if follow:
-            tails = utils.roundrobin([s.tail(True) for s in self.systems])
+            tails = utils.roundrobin([s.tail(True)
+                                      for s in self.systems
+                                      if s.is_ready()])
             for line in tails:
                 print(line)
 
         else:
             for s in self.systems:
                 s.tail()
+                print()
 
     def is_ready(self):
         ready = [s.is_ready() for s in self.systems]
-        return all(ready)
+        return any(ready)
 
     def update(self, tail=True, results=True):
         if not self.is_ready():
@@ -259,14 +297,14 @@ with ten as (
         utils.run_command('Clean-up', command)
 
         for s in self.systems:
-            s.update(self.resdb)
+                s.update(self.resdb)
 
         if tail:
-            print()
             for s in self.systems:
                 log = utils.logfile(self.name, s.name)
                 out, _ = utils.run_command('tail', 'tail -n 3 %s' % log)
 
+                print()
                 for line in out:
                     print(line)
 
@@ -290,6 +328,9 @@ with ten as (
         self.log.info("Terminating the whole infra for %s", self.name)
         for s in self.systems:
             s.terminate()
+
+        self.list_infra()
+        return
 
     def list_result_files(self):
         files = []

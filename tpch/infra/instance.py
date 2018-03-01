@@ -68,6 +68,11 @@ class Instance():
     def get_instance_id(self):
         return self.data["Instances"][0]["InstanceId"]
 
+    def get_instance_type(self):
+        if hasattr(self, "id"):
+            return self.data["Instances"][0]["InstanceType"]
+        return None
+
     def status(self):
         if hasattr(self, "id"):
             self._status = self.conn.describe_instance_status(

@@ -60,8 +60,16 @@ class RDS():
 
     def status(self):
         if self.id:
-            desc = self.describe()
-            return desc['DBInstances'][0]['DBInstanceStatus']
+            try:
+                desc = self.describe()
+                return desc['DBInstances'][0]['DBInstanceStatus']
+            except self.conn.exceptions.DBInstanceNotFoundFault:
+                return 'Not Found'
+
+    def get_instance_class(self):
+        if hasattr(self, "data"):
+            return self.data['DBInstance']['DBInstanceClass']
+        return None
 
     def dsn(self):
         desc = self.describe()

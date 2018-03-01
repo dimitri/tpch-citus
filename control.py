@@ -86,7 +86,7 @@ def benchmark(name, schedule, system):
 
 
 @cli.command()
-@click.argument('name')
+@click.option('--name', required=True)
 def status(name):
     """Display infra status and becnhmark logs"""
     r = bench.Run(name)
@@ -95,17 +95,59 @@ def status(name):
 
 
 @cli.command()
+@click.option('--name')
+@click.option('--orphans', is_flag=True, default=False)
+def infra(name, orphans):
+    """Display infra in use by benchmarks"""
+    if name:
+        run = bench.Run(name)
+        run.list()
+        print()
+        run.list_infra()
+        print()
+
+    else:
+        for name in tpch.control.utils.list_runs():
+            run = bench.Run(name)
+
+            if orphans:
+                # only list infra running for no reasons
+                if run.has_infra() and not run.tpch_is_running():
+                    run.list()
+                    print()
+                    run.list_infra()
+                    print()
+            else:
+                # here we list everything we know
+                run.list_infra()
+                print()
+    return
+
+
+@cli.command()
+@click.option('--name')
+@click.option('--running', is_flag=True, default=False)
 @click.option('--db', default=RES_DB_CONNSTR)
-def list(db):
+def list(db, name, running):
     """List currently known benchmarks."""
-    for name in tpch.control.utils.list_runs():
+    if name:
         run = bench.Run(name, resdb=db)
         run.list()
         print()
 
+    else:
+        for name in tpch.control.utils.list_runs():
+            run = bench.Run(name, resdb=db)
+            if running:
+                if run.is_ready():
+                    run.list()
+            else:
+                run.list()
+            print()
+
 
 @cli.command()
-@click.argument('name')
+@click.option('--name', required=True)
 @click.option('--system')
 @click.option('-f', is_flag=True, default=False)
 def tail(name, system, f):

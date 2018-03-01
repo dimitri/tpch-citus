@@ -187,7 +187,7 @@ def update(name, system, running, db):
             run = bench.Run(name, resdb=db)
             if run.is_ready():
                 print()
-                run.list()
+                run.status()
 
     print()
 

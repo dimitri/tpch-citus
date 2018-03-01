@@ -201,9 +201,6 @@ with ten as (
         self.list_infra()
         print()
         self.tail()
-
-        print("Last known progress. Refresh with: ./control.py update --name %s"
-              % self.name)
         print()
         self.results()
         print()

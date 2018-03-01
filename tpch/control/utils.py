@@ -188,20 +188,22 @@ class BufferedRemoteCommand():
     def readlines(self):
         nbytes, out = self.read()
 
+        if nbytes == -1:
+            # no luck this time, come later
+            while nbytes == -1:
+                time.sleep(1)
+                nbytes, out = self.read()
+
         if nbytes == 0:
             # we're closed
             lines = []
-
-        elif nbytes == -1:
-            # no luck this time, come later
-            time.sleep(1)
-            return self.readlines()
 
         else:
             lines = out.splitlines()
 
             if self.current_line:
                 lines[0] = self.current_line + lines[0]
+                self.current_line = None
 
             if out[-1] != '\n':
                 self.current_line = lines[-1]
@@ -236,9 +238,18 @@ class BufferedRemoteCommand():
         return self.client.close()
 
 
-def roundrobin(iterables):
+def roundrobin(iterables, startup=10):
     "roundrobin('ABC', 'D', 'EF') --> A D E B F C"
     # Recipe credited to George Sakkis
+    lines = {}
+    for it in iterables:
+        lines[it] = 0
+
+    for it in iterables:
+        while lines[it] < startup:
+            yield it.__next__()
+            lines[it] += 1
+
     num_active = len(iterables)
     nexts = cycle(iter(it).__next__ for it in iterables)
     while num_active:

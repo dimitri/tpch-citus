@@ -39,8 +39,13 @@ class Setup():
             type = conf.get('ebs', 'type')
         )
 
+        # backwards compatibility, to be killed
+        rds_iname = 'tpch-rds'
+        if conf.has_option('rds', 'iname'):
+            rds_iname = conf.get('rds', 'iname')
+
         self.rds = RDS_conf(
-            iname   = conf.get('rds', 'iname'),
+            iname   = rds_iname,
             dbname  = conf.get('rds', 'dbname'),
             iops    = conf.getint('rds', 'iops'),
             size    = conf.getint('rds', 'size'),

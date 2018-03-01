@@ -97,13 +97,14 @@ def status(name):
 @cli.command()
 @click.option('--name')
 @click.option('--orphans', is_flag=True, default=False)
-def infra(name, orphans):
+@click.option('--dsn', is_flag=True, default=False)
+def infra(name, orphans, dsn):
     """Display infra in use by benchmarks"""
     if name:
         run = bench.Run(name)
         run.list()
         print()
-        run.list_infra()
+        run.list_infra(dsn)
         print()
 
     else:
@@ -115,11 +116,11 @@ def infra(name, orphans):
                 if run.has_infra() and not run.tpch_is_running():
                     run.list()
                     print()
-                    run.list_infra()
+                    run.list_infra(dsn)
                     print()
             else:
                 # here we list everything we know
-                run.list_infra()
+                run.list_infra(dsn)
                 print()
     return
 

@@ -73,7 +73,7 @@ class Run():
     def has_infra(self):
         return any([s.has_infra() for s in self.systems])
 
-    def list_infra(self):
+    def list_infra(self, with_dsn=False):
         if not self.has_infra():
             return
 
@@ -94,12 +94,15 @@ class Run():
                          loader.status(),
                          loader.public_ip()))
 
+        db_dsn = {}
         if 'rds' in [s.name for s in self.systems]:
             s = [s for s in self.systems if s.name == 'rds'][0]
             if os.path.exists(s.djson):
                 db = s.get_db()
                 print("%15s | %20s | %15s | %15s |"
                       % ("RDS", db.id, db.get_instance_class(), db.status()))
+                if with_dsn:
+                    db_dsn['RDS'] = db.dsn()
 
         if 'aurora' in [s.name for s in self.systems]:
             s = [s for s in self.systems if s.name == 'aurora'][0]
@@ -107,6 +110,20 @@ class Run():
                 db = s.get_db()
                 print("%15s | %20s | %15s | %15s |"
                       % ("Aurora", db.id, db.get_instance_class(), db.status()))
+                if with_dsn:
+                    db_dsn['Aurora'] = db.dsn()
+
+        if with_dsn:
+            if 'citus' in [s.name for s in self.systems]:
+                s = [s for s in self.systems if s.name == 'citus'][0]
+                db_dsn['citus'] = s.dsn()
+
+        if with_dsn:
+            print()
+            print("Database Connection Strings")
+            for name, dsn in db_dsn.items():
+                print("%9s: %s" % (name, dsn))
+            print()
 
         return
 

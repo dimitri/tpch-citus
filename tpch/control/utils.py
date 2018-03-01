@@ -147,6 +147,43 @@ def execute_remote_command(ip, command, quiet=False):
     return out, err
 
 
+class RemoteSession():
+    def __init__(self, ip):
+        self.client = SSHClient()
+        self.client.set_missing_host_key_policy(IgnoreHostKeyPolicy)
+        self.client.connect(ip, username=REMOTE_USER)
+
+        self.sftp = self.client.open_sftp()
+
+    def execute(self, command):
+        stdin, stdout, stderr = self.client.exec_command(command)
+
+        rc = stdout.channel.recv_exit_status()
+        out = stdout.read().decode('utf-8').splitlines()
+        err = stderr.read().decode('utf-8').splitlines()
+
+        if rc != 0 and not quiet:
+            log = logging.getLogger('TPCH')
+
+            log.error("ssh command returned %d" % rc)
+            log.error("ssh -l %s %s %s" % (REMOTE_USER, ip, command))
+            print(command)
+            for line in out:
+                print(line)
+            for line in err:
+                print(line)
+            print()
+
+        return
+
+    def download(self, src, dst):
+        self.sftp.get(src, dst)
+        return
+
+    def close(self):
+        self.client.close()
+
+
 class BufferedRemoteCommand():
     def __init__(self, ip, command, username=REMOTE_USER):
         self.ip = ip

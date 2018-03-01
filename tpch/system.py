@@ -234,8 +234,7 @@ class System():
         if self.loader.status() == 'running':
             ip = self.loader.public_ip()
 
-            self.fetch_logs(ip)
-            self.fetch_results(ip)
+            self.fetch_logs_and_results(ip)
             self.merge_results(resdb)
 
         else:
@@ -243,37 +242,30 @@ class System():
 
         return
 
-    def fetch_logs(self, ip=None):
+    def fetch_logs_and_results(self, ip=None):
         if not ip:
             if self.is_ready():
                 ip = self.loader.public_ip()
             else:
                 self.log.error(
-                    "%s: can't fetch logs, loader not ready", self.name)
+                    "%s: can't fetch logs and results, loader not ready",
+                    self.name)
                 return
 
+        session = cntl.RemoteSession(ip)
         # fetch logs
         logfile = cntl.logfile(self.run, self.name)
         self.log.info('%s: downloading logs in %s',
                       self.name, os.path.relpath(logfile))
-        cntl.download(ip, 'tpch.log', logfile)
-        return
 
-    def fetch_results(self, ip=None):
-        if not ip:
-            if self.is_ready():
-                ip = self.loader.public_ip()
-            else:
-                self.log.error(
-                    "%s: can't fetch results, loader not ready", self.name)
-                return
+        session.download('tpch.log', logfile)
 
         # fetch current results
-        self.log.info('%s: dumping and fetching current results',
-                      self.name)
-        self.log.info("%s: ssh -l ec2-user %s %s"
-                      % (self.name, ip, MAKE_RES_DUMP))
-        cntl.execute_remote_command(ip, MAKE_RES_DUMP)
+        self.log.info('%s: dumping current results', self.name)
+        self.log.info("%s: ssh -l ec2-user %s %s" % (self.name,
+                                                     ip,
+                                                     MAKE_RES_DUMP))
+        session.execute(MAKE_RES_DUMP)
 
         copy_files = self.list_copy_files()
         resdir = os.path.relpath(cntl.resdir(self.run))
@@ -281,7 +273,9 @@ class System():
         for src, dest in copy_files.items():
             self.log.info('%s: downloading results in %s',
                           self.name, os.path.relpath(dest))
-            cntl.download(ip, src, dest)
+            session.download(src, dest)
+
+        session.close()
         return
 
     def merge_results(self, resdb):

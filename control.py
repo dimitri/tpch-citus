@@ -196,7 +196,7 @@ def update(name, system, running, db):
 @click.option('--name')
 @click.option('--db', default=RES_DB_CONNSTR)
 def results(name, db):
-    """Merge local results from loaders"""
+    """Show local benchmark results"""
     if name:
         run = bench.Run(name, resdb=db)
         run.results(verbose=True)

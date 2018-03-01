@@ -10,7 +10,7 @@ from collections import namedtuple
 
 Loader_conf = namedtuple('EC2', 'instance ami')
 EBS_conf    = namedtuple('EBS', 'iops size type')
-RDS_conf    = namedtuple('RDS', 'dbname iops size iclass stype version')
+RDS_conf    = namedtuple('RDS', 'iname dbname iops size iclass stype version')
 Aurora_conf = namedtuple('Aurora', 'cluster iname dbname iclass stype')
 PgSQL_conf  = namedtuple('PgSQL', 'dsn')
 Citus_conf  = namedtuple('Citus', 'dsn')
@@ -40,6 +40,7 @@ class Setup():
         )
 
         self.rds = RDS_conf(
+            iname   = conf.get('rds', 'iname'),
             dbname  = conf.get('rds', 'dbname'),
             iops    = conf.getint('rds', 'iops'),
             size    = conf.getint('rds', 'size'),

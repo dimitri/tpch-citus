@@ -283,7 +283,7 @@ with ten as (
 
         return
 
-    def tail(self, follow=False):
+    def tail(self, follow=False, n=10):
         self.log.info("tail %s logs" % (self.name))
 
         if follow:
@@ -295,7 +295,7 @@ with ten as (
 
         else:
             for s in self.systems:
-                s.tail()
+                s.tail(n=n)
                 print()
 
     def is_ready(self):

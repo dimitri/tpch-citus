@@ -152,7 +152,7 @@ class System():
                 return False
         return False
 
-    def tail(self, follow=False):
+    def tail(self, follow=False, n=10):
         if self.is_ready():
             ip = self.loader.wait_for_public_ip()
 
@@ -165,7 +165,7 @@ class System():
                 return iter(remote)
 
             else:
-                command = "tail tpch.log"
+                command = "tail -n %s tpch.log" % n
                 out, _ = cntl.execute_remote_command(ip, command)
                 for line in out:
                     print(line)

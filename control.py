@@ -163,10 +163,11 @@ def list(db, name, running):
 @click.option('--name', required=True)
 @click.option('--system')
 @click.option('-f', is_flag=True, default=False)
-def tail(name, system, f):
+@click.option('-n', default=10)
+def tail(name, system, n, f):
     """Connects to the loaders and tail -f tpch.log"""
     r = bench.Run(name, system)
-    r.tail(f)
+    r.tail(follow=f, n=n)
     return
 
 

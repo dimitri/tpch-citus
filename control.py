@@ -271,9 +271,10 @@ def cancel(name, system):
 
 @cli.command()
 @click.argument('name')
-def terminate(name):
+@click.option('--system')
+def terminate(name, system):
     """Terminate loaders, delete database instances"""
-    r = bench.Run(name)
+    r = bench.Run(name, system)
     r.terminate()
 
 @cli.command()

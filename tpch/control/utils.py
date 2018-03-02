@@ -201,6 +201,8 @@ class BufferedRemoteCommand():
         self.client.connect(self.ip, username=self.username)
 
         self.transport = self.client.get_transport()
+        self.transport.set_keepalive(30)
+
         self.channel = self.transport.open_session()
         self.channel.set_combine_stderr(True)
 

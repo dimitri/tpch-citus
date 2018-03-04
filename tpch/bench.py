@@ -239,7 +239,9 @@ with ten as (
         sql = """
      select system,
             max(job_number) as current_job_number,
-            max(job) as current_job,
+            (
+              array_agg(job order by job_number)
+            )[max(job_number)] as current_job,
             sum(duration) as total_duration,
             max(steps) filter(where steps is not null) as step,
             sum(count) filter(where count > 1) as queries

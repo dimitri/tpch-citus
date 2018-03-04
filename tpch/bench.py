@@ -7,7 +7,7 @@ import humanize
 from . import system
 from .control import setup
 from .control import utils
-from .run import setup as tpch
+from .run import setup as sched
 from .infra import setup as infra
 
 RUNFILE = 'run.ini'
@@ -22,7 +22,7 @@ class Run():
 
         self.cfn  = os.path.join(utils.outdir(name), RUNFILE)
         self.conf = setup.Setup(self.cfn)
-        self.tpch = tpch.Setup(utils.tpch_ini_path(self.name))
+        self.sched = sched.Setup(utils.sched_ini_path(self.name))
         self.infra = infra.Setup(utils.infra_ini_path(self.name))
 
         self.log = logging.getLogger('TPCH')
@@ -50,11 +50,15 @@ class Run():
         if resdb:
             self.resdb = resdb
         else:
-            self.resdb = self.tpch.results.dsn
+            self.resdb = self.sched.results.dsn
 
-    def register(self, systems, schedule):
-        self.sysnames = systems
+    def register(self, schedule, systems):
         self.schedule = schedule
+
+        if systems:
+            self.sysnames = systems
+        else:
+            self.sysnames = [name for name in self.infra.infra]
 
         self.conf.create(self.schedule, self.sysnames)
         self.check_config()
@@ -62,11 +66,11 @@ class Run():
     def check_config(self):
         # for now systems are hard-coded, see infra/setup.py
         for s in self.sysnames:
-            if s not in ('rds', 'aurora', 'citus', 'pgsql'):
+            if s not in self.infra.infra:
                 raise ValueError("Unknown system to test: %s", s)
 
-        if self.schedule not in self.tpch.schedules and \
-           self.schedule not in self.tpch.jobs:
+        if self.schedule not in self.sched.schedules and \
+           self.schedule not in self.sched.jobs:
             raise ValueError("Unknown benchmark schedule/job %s",
                              self.schedule)
 
@@ -79,15 +83,15 @@ class Run():
 
         print("Infra for benchmark %s:" % self.name)
         print()
-        print("%15s | %20s | %15s | %15s | %15s"
+        print("%20s | %20s | %15s | %15s | %15s"
               % ("Resource", "AWS Id", "Type", "Status", "Address"))
-        print("%15s-|-%20s-|-%15s-|-%15s-|-%15s"
-              % ("-" * 15, "-" * 20, "-" * 15, "-" * 15, "-" * 15))
+        print("%20s-|-%20s-|-%15s-|-%15s-|-%15s"
+              % ("-" * 20, "-" * 20, "-" * 15, "-" * 15, "-" * 15))
 
         for s in self.systems:
             if os.path.exists(s.ljson):
                 loader = s.get_loader()
-                print("%15s | %20s | %15s | %15s | %15s"
+                print("%20s | %20s | %15s | %15s | %15s"
                       % ("%s loader" % s.name,
                          loader.id,
                          loader.get_instance_type(),
@@ -95,28 +99,15 @@ class Run():
                          loader.public_ip()))
 
         db_dsn = {}
-        if 'rds' in [s.name for s in self.systems]:
-            s = [s for s in self.systems if s.name == 'rds'][0]
-            if os.path.exists(s.djson):
-                db = s.get_db()
-                print("%15s | %20s | %15s | %15s |"
-                      % ("RDS", db.id, db.get_instance_class(), db.status()))
-                if with_dsn:
-                    db_dsn['RDS'] = db.dsn()
+        for s in self.systems:
+            dbinfo = s.get_db_info()
+            db_dsn[dbinfo.label] = dbinfo.dsn
 
-        if 'aurora' in [s.name for s in self.systems]:
-            s = [s for s in self.systems if s.name == 'aurora'][0]
-            if os.path.exists(s.djson):
-                db = s.get_db()
-                print("%15s | %20s | %15s | %15s |"
-                      % ("Aurora", db.id, db.get_instance_class(), db.status()))
-                if with_dsn:
-                    db_dsn['Aurora'] = db.dsn()
-
-        if with_dsn:
-            if 'citus' in [s.name for s in self.systems]:
-                s = [s for s in self.systems if s.name == 'citus'][0]
-                db_dsn['citus'] = s.dsn()
+            if s.manage_db():
+                print("%20s | %20s | %15s | %15s |" % (dbinfo.label,
+                                                       dbinfo.id,
+                                                       dbinfo.iclass,
+                                                       dbinfo.status))
 
         if with_dsn:
             print()
@@ -127,10 +118,7 @@ class Run():
 
         return
 
-    def prepare(self, schedule):
-        if schedule:
-            self.schedule = schedule
-
+    def prepare(self):
         self.log.info('%s: preparing the infra' % self.name)
         for s in self.systems:
             self.log.info('%s: preparing system %s' % (self.name, s.name))
@@ -214,11 +202,11 @@ with ten as (
 
     def print_specs(self):
         # two lines because of pycodestyle policies
-        specs = self.tpch.schedules[self.schedule]
-        specs = specs or self.tpch.jobs[self.schedule]
-        stages = self.tpch.stages(self.schedule)
+        specs = self.sched.schedules[self.schedule]
+        specs = specs or self.sched.jobs[self.schedule]
+        stages = self.sched.stages(self.schedule)
 
-        scale = self.tpch.scale
+        scale = self.sched.scale
 
         print(" SF %d with %d steps of %s each, total %s"
               % (scale.factor, scale.children,
@@ -269,8 +257,8 @@ with ten as (
             if step:
                 current_step = int(step.split('..')[1])
                 current_step = int(current_step
-                                   * self.tpch.scale.factor
-                                   / self.tpch.scale.children)
+                                   * self.sched.scale.factor
+                                   / self.sched.scale.children)
 
             print("%10s[%2s]: stage %s/%s (%s) in %s with %s queries "
                   % (system,
@@ -352,8 +340,8 @@ with ten as (
     def list_result_files(self):
         files = []
 
-        bench_ini_files = [os.path.join(utils.outdir(self.name), 'run.ini'),
-                           utils.tpch_ini_path(self.name),
+        bench_ini_files = [utils.run_ini_path(self.name),
+                           utils.sched_ini_path(self.name),
                            utils.infra_ini_path(self.name)]
 
         for ini in bench_ini_files:

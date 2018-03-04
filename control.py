@@ -50,13 +50,13 @@ control scripts uses rsync and ssh to control the loader instances.
 @cli.command()
 @click.option("--name")
 @click.option('--infra', type=click.Path(exists=True), required=True)
-@click.option('--config', type=click.Path(exists=True), required=True)
-def setup(infra, config, name):
-    """Set-up a TPC-H benchmark: infra.ini, tpch.ini"""
+@click.option('--sched', type=click.Path(exists=True), required=True)
+def setup(infra, sched, name):
+    """Set-up a TPC-H benchmark: infra.ini, schedule.ini"""
     if not name:
         name = tpch.run.utils.compose_name()
 
-    tpch.control.utils.setup_out_dir(name, infra, config)
+    tpch.control.utils.setup_out_dir(name, infra, sched)
     click.echo(name)
 
 
@@ -67,9 +67,19 @@ def setup(infra, config, name):
 def register(name, schedule, system):
     """Register a schedule and the target systems."""
     r = bench.Run(name)
-    r.register(system, schedule)
+    r.register(schedule, system)
     click.echo('%s: registered schedule %s for systems %s'
-               % (name, schedule, ", ".join(system)))
+               % (name, schedule, ", ".join(r.sysnames)))
+
+
+@cli.command()
+@click.option('--system')
+@click.argument('name')
+def prepare(name, system):
+    """Run the benchmarks"""
+    r = bench.Run(name, system)
+    r.prepare()
+    return
 
 
 @cli.command()
@@ -78,9 +88,8 @@ def register(name, schedule, system):
 @click.argument('name')
 def benchmark(name, schedule, system):
     """Run the benchmarks"""
-    # prepare the infra
     r = bench.Run(name, system)
-    r.prepare(schedule)
+    r.prepare()
     r.start(schedule)
     return
 

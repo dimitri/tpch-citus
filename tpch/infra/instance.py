@@ -40,9 +40,9 @@ class Instance():
                     'Ebs': {
                         'Encrypted': False,
                         'DeleteOnTermination': True,
-                        'Iops': self.conf.ebs.iops,
-                        'VolumeSize': self.conf.ebs.size,
-                        'VolumeType': self.conf.ebs.type
+                        'Iops': self.conf.loader.iops,
+                        'VolumeSize': self.conf.loader.size,
+                        'VolumeType': self.conf.loader.stype
                     }
                 }
             ],
@@ -83,13 +83,14 @@ class Instance():
         if self._status["InstanceStatuses"]:
             return self._status["InstanceStatuses"][0]["InstanceState"]["Name"]
         else:
-            return self._status
+            return "Unknown"
 
     def public_ip(self):
         filter = {'Name': 'attachment.instance-id', 'Values': [self.id]}
         nic = self.conn.describe_network_interfaces(Filters = [filter])
         self.interfaces = nic
-        return nic["NetworkInterfaces"][0]["Association"]["PublicIp"]
+        if nic["NetworkInterfaces"]:
+            return nic["NetworkInterfaces"][0]["Association"]["PublicIp"]
 
     def wait_for_public_ip(self):
         status = self.status()

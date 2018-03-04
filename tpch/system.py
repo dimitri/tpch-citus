@@ -4,6 +4,8 @@ import logging
 
 import boto3
 
+from collections import namedtuple
+
 from .infra import setup
 from .infra import rds
 from .infra import aurora
@@ -25,9 +27,12 @@ RUN_TPCH  += ' --name %s'
 RUN_TPCH  += ' --schedule %s'
 RUN_TPCH  += ' --dsn %s'
 RUN_TPCH  += ' --kind %s'
-RUN_TPCH  += ' --ini tpch.ini'  # we SCP it there at start time
-RUN_TPCH  += ' --log tpch.log'  # we create the log file in $HOME too
+RUN_TPCH  += ' --ini schedule.ini'  # we SCP it there at start time
+RUN_TPCH  += ' --log tpch.log'      # we create the log file in $HOME too
 RUN_TPCH  += ' --detach'
+
+
+DB_Info = namedtuple('DBInfo', 'label id iclass status dsn')
 
 
 class System():
@@ -44,7 +49,9 @@ class System():
 
         self.dconn = boto3.client('rds', self.conf.region)
         self.djson = None
-        if self.name in ('rds', 'aurora'):
+
+        self.dbtype = self.get_db_type()
+        if self.manage_db():
             self.djson = os.path.join(awsdir, 'db.%s.json' % name)
 
         self.get_loader()
@@ -54,13 +61,26 @@ class System():
 
         return
 
-    def get_db(self):
-        self.db = None
-        if self.name == 'rds':
-            self.db = rds.RDS(self.conf, self.dconn, self.djson)
+    def get_db_type(self):
+        # Return the Type Name of the Named Tuple we're using
+        # see ../tpch/infra/setup.py for details
+        return type(self.conf.infra[self.name]).__name__
 
-        elif self.name == 'aurora':
-            self.db = aurora.Aurora(self.conf, self.dconn, self.djson)
+    def manage_db(self):
+        return self.get_db_type() in ('RDS', 'Aurora')
+
+    def get_db(self):
+        az = self.conf.az
+        sg = self.conf.sg
+        infra = self.conf.infra[self.name]
+
+        self.db = None
+
+        if self.dbtype == 'RDS':
+            self.db = rds.RDS(az, sg, infra, self.dconn, self.djson)
+
+        elif self.dbtype == 'Aurora':
+            self.db = aurora.Aurora(az, sg, infra, self.dconn, self.djson)
 
         return self.db
 
@@ -84,12 +104,16 @@ class System():
 
     def prepare(self):
         # start the database resource on AWS, if any
-        if self.name == 'rds':
-            self.db = rds.RDS(self.conf, self.dconn, self.djson)
+        az = self.conf.az
+        sg = self.conf.sg
+        infra = self.conf.infra[self.name]
+
+        if self.dbtype == 'RDS':
+            self.db = rds.RDS(az, sg, infra, self.dconn, self.djson)
             self.log.info('%s: create db: %s', self.name, self.db.create())
 
-        elif self.name == 'aurora':
-            self.db = aurora.Aurora(self.conf, self.dconn, self.djson)
+        elif self.dbtype == 'Aurora':
+            self.db = aurora.Aurora(az, sg, infra, self.dconn, self.djson)
             self.log.info('%s: create db: %s', self.name, self.db.create())
 
         else:
@@ -104,17 +128,40 @@ class System():
 
     def dsn(self):
         self.get_db()
-        if self.name in ('rds', 'aurora'):
+        if self.dbtype in ('RDS', 'Aurora'):
             return self.db.dsn()
 
-        elif self.name == 'pgsql':
-            return self.conf.pgsql.dsn
+        elif self.dbtype == 'PgSQL':
+            return self.conf.infra[self.name].dsn
 
-        elif self.name == 'citus':
-            return self.conf.citus.dsn
+        elif self.dbtype == 'Citus':
+            return self.conf.infra[self.name].dsn
 
         else:
-            raise ValueError("Unknown system name: %s", self.name)
+            raise ValueError("Unknown system type: %s", self.dbtype)
+
+    def get_db_info(self):
+        if self.djson and os.path.exists(self.djson):
+            db = self.get_db()
+            if self.manage_db():
+                dbinfo = DB_Info(
+                    label  = self.conf.infra[self.name].label,
+                    dsn    = self.dsn(),
+                    id     = db.id,
+                    iclass = db.get_instance_class(),
+                    status = db.status()
+                )
+        else:
+            # Not a DB we manager, but better re-check
+            if not self.manage_db():
+                dbinfo = DB_Info(
+                    label  = self.conf.infra[self.name].label,
+                    dsn    = self.dsn(),
+                    id     = None,
+                    iclass = None,
+                    status = None
+                )
+        return dbinfo
 
     def has_infra(self):
         return (self.ljson and os.path.exists(self.ljson)) \
@@ -194,13 +241,10 @@ class System():
             self.log.info('%s run benchmark %s', self.name, self.schedule)
 
             ip = self.loader.public_ip()
-            cntl.upload(ip, cntl.tpch_ini_path(self.run), './tpch.ini')
+            cntl.upload(ip, cntl.sched_ini_path(self.run), './schedule.ini')
 
-            # FIXME: generalize the INFRA bits so that we can have more than
-            # one citus system in the setup, and same with pgsql, rds or
-            # aurora SUT.
             self.kind = 'pgsql'
-            if self.name == 'citus':
+            if self.dbtype == 'Citus':
                 self.kind = 'citus'
 
             cmd = RUN_TPCH % (self.name,

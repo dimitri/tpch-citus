@@ -47,12 +47,12 @@ def awsdir(name):
     return awsdir
 
 
-def setup_out_dir(name, infra, config):
+def setup_out_dir(name, infra, sched):
     od = outdir(name)
 
-    # copy given infra.ini and tpch.ini to our outdir
+    # copy given infra.ini and schedule.ini to our outdir
     shutil.copyfile(infra, os.path.join(od, 'infra.ini'))
-    shutil.copyfile(config, os.path.join(od, 'tpch.ini'))
+    shutil.copyfile(sched, os.path.join(od, 'schedule.ini'))
 
     return
 
@@ -64,11 +64,15 @@ def list_runs(rdir=OUTDIR):
             yield f.name
 
 
+def run_ini_path(name, filename='run.ini'):
+    return os.path.join(OUTDIR, name, filename)
+
+
 def infra_ini_path(name, filename='infra.ini'):
     return os.path.join(OUTDIR, name, filename)
 
 
-def tpch_ini_path(name, filename='tpch.ini'):
+def sched_ini_path(name, filename='schedule.ini'):
     return os.path.join(OUTDIR, name, filename)
 
 

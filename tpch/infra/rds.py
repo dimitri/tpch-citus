@@ -11,7 +11,9 @@ from . import utils
 
 
 class RDS():
-    def __init__(self, conf, conn, filename = None):
+    def __init__(self, az, sg, conf, conn, filename = None):
+        self.az = az
+        self.sg = sg
         self.conf = conf
         self.conn = conn
         self.filename = filename
@@ -24,18 +26,18 @@ class RDS():
             return self.id
 
         out = self.conn.create_db_instance(
-            DBName = self.conf.rds.dbname,
-            DBInstanceIdentifier = self.conf.rds.iname,
-            AllocatedStorage = self.conf.rds.size,
+            DBName = self.conf.dbname,
+            DBInstanceIdentifier = self.conf.iname,
+            AllocatedStorage = self.conf.size,
             Engine = 'postgres',
-            DBInstanceClass = self.conf.rds.iclass,
+            DBInstanceClass = self.conf.iclass,
             MasterUsername = 'tpch',
             MasterUserPassword = 'tcph-dummy-password',
-            VpcSecurityGroupIds = [self.conf.sg],
-            AvailabilityZone = self.conf.az,
-            EngineVersion = self.conf.rds.version,
-            StorageType = self.conf.rds.stype,
-            Iops = self.conf.rds.iops
+            VpcSecurityGroupIds = [self.sg],
+            AvailabilityZone = self.az,
+            EngineVersion = self.conf.version,
+            StorageType = self.conf.stype,
+            Iops = self.conf.iops
         )
         with open(self.filename, 'w') as outfile:
             json.dump(out, outfile, default=utils.json_serial, indent=6)

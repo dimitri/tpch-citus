@@ -13,7 +13,9 @@ from . import utils
 
 class Cluster():
 
-    def __init__(self, conf, conn, filename):
+    def __init__(self, az, sg, conf, conn, filename):
+        self.az = az
+        self.sg = sg
         self.conf = conf
         self.conn = conn
         self.filename = filename
@@ -32,10 +34,10 @@ class Cluster():
             return self.id
 
         out = self.conn.create_db_cluster(
-            AvailabilityZones = [self.conf.az],
-            DatabaseName = self.conf.aurora.dbname,
-            DBClusterIdentifier = self.conf.aurora.cluster,
-            VpcSecurityGroupIds = [self.conf.sg],
+            AvailabilityZones = [self.az],
+            DatabaseName = self.conf.dbname,
+            DBClusterIdentifier = self.conf.cluster,
+            VpcSecurityGroupIds = [self.sg],
             Engine = 'aurora-postgresql',
             Port = self.Port,
             MasterUsername = self.MasterUsername,
@@ -89,7 +91,9 @@ class Cluster():
 
 class Aurora(rds.RDS):
 
-    def __init__(self, conf, conn, filename = None):
+    def __init__(self, az, sg, conf, conn, filename = None):
+        self.az = az
+        self.sg = sg
         self.conf = conf
         self.conn = conn
         self.filename = filename
@@ -100,7 +104,7 @@ class Aurora(rds.RDS):
         if self.filename:
             name, extension = os.path.splitext(self.filename)
             cluster_filename = '%s.cluster.%s' % (name, extension[1:])
-            self.cluster = Cluster(conf, conn, cluster_filename)
+            self.cluster = Cluster(az, sg, conf, conn, cluster_filename)
 
     def create(self):
         if self.filename and os.path.exists(self.filename) and self.id:
@@ -111,9 +115,9 @@ class Aurora(rds.RDS):
 
         out = self.conn.create_db_instance(
             DBClusterIdentifier = self.cluster.id,
-            DBInstanceIdentifier = self.conf.aurora.iname,
+            DBInstanceIdentifier = self.conf.iname,
             Engine = 'aurora-postgresql',
-            DBInstanceClass = self.conf.aurora.iclass
+            DBInstanceClass = self.conf.iclass
         )
         with open(self.filename, 'w') as outfile:
             json.dump(out, outfile, default=utils.json_serial, indent=6)
@@ -131,7 +135,7 @@ class Aurora(rds.RDS):
                 self.cluster.MasterUserPassword,
                 self.cluster.endpoint(),
                 self.cluster.Port,
-                self.conf.aurora.dbname
+                self.conf.dbname
             )
 
     def delete(self):

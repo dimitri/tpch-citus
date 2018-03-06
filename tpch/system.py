@@ -141,6 +141,7 @@ class System():
             raise ValueError("Unknown system type: %s", self.dbtype)
 
     def get_db_info(self):
+        dbinfo = None
         if self.djson and os.path.exists(self.djson):
             db = self.get_db()
             if self.manage_db():

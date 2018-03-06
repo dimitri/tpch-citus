@@ -101,9 +101,10 @@ class Run():
         db_dsn = {}
         for s in self.systems:
             dbinfo = s.get_db_info()
-            db_dsn[dbinfo.label] = dbinfo.dsn
+            if dbinfo:
+                db_dsn[dbinfo.label] = dbinfo.dsn
 
-            if s.manage_db():
+            if dbinfo and s.manage_db():
                 print("%20s | %20s | %15s | %15s |" % (dbinfo.label,
                                                        dbinfo.id,
                                                        dbinfo.iclass,

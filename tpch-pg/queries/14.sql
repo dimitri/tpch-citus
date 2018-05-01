@@ -16,5 +16,6 @@ from
 where
 	l_partkey = p_partkey
 	and l_shipdate >= date ':1'
-	and l_shipdate < date ':1' + interval '1' month;
+	and l_shipdate < date ':1' + interval '1' month
 :n -1
+;

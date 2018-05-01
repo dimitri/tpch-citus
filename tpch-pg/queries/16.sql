@@ -33,5 +33,6 @@ order by
 	supplier_cnt desc,
 	p_brand,
 	p_type,
-	p_size;
+	p_size
 :n -1
+;

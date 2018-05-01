@@ -40,5 +40,6 @@ from
 group by
 	o_year
 order by
-	o_year;
+	o_year
 :n -1
+;

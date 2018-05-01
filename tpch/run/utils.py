@@ -55,15 +55,23 @@ def run_command(command, verbose=False):
 
 def parse_psql_timings(queries, output):
     "Parse psql Time: output when \timing is used."
+    logger = logging.getLogger('TPCH')
     timings = {}
     qstream = queries.split(" ")
+    current_query = None
     i = 0
     for line in output:
-        if line and line.startswith(u'Time: '):
-            ms_pos = line.find('ms') + len('ms')
-            timing = line[len(u'Time: '):ms_pos]
-            timings[qstream[i]] = timing
-            i = i + 1
+        if line:
+            if line.startswith(u'select'):
+                current_query = 'select'
+
+            elif line.startswith(u'Time: ') and current_query:
+                ms_pos = line.find('ms') + len('ms')
+                timing = line[len(u'Time: '):ms_pos]
+                timings[qstream[i]] = timing
+
+                i = i + 1
+                current_query = None
 
     return timings
 

@@ -280,7 +280,8 @@ with ten as (
         if follow:
             tails = utils.roundrobin([s.tail(True)
                                       for s in self.systems
-                                      if s.is_ready()])
+                                      if s.is_ready()],
+                                     n)
             for line in tails:
                 print(line)
 

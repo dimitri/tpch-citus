@@ -68,6 +68,10 @@ class RDS():
             except self.conn.exceptions.DBInstanceNotFoundFault:
                 return 'Not Found'
 
+    def is_ready(self):
+        if self.id:
+            return self.status() == 'available'
+
     def get_instance_class(self):
         if hasattr(self, "data"):
             return self.data['DBInstance']['DBInstanceClass']

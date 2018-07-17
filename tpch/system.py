@@ -10,11 +10,12 @@ from .infra import setup
 from .infra import rds
 from .infra import aurora
 from .infra import instance
+from .infra import pgsql
 from .infra import utils
 from .control import utils as cntl
 
 MAKEFILE      = 'Makefile.loader'
-MAKE_OS_TOOLS = 'make -C tpch -f %s os tools' % MAKEFILE
+MAKE_OS_TOOLS = 'make -C tpch -f %s %%s tools' % MAKEFILE
 MAKE_RES_DUMP = 'make -C tpch -f %s dump' % MAKEFILE
 DUMP_FILES    = ['run.copy', 'job.copy', 'query.copy']
 
@@ -54,10 +55,10 @@ class System():
         if self.manage_db():
             self.djson = os.path.join(awsdir, 'db.%s.json' % name)
 
+        self.log = logging.getLogger('TPCH')
+
         self.get_loader()
         self.get_db()
-
-        self.log = logging.getLogger('TPCH')
 
         return
 
@@ -67,7 +68,7 @@ class System():
         return type(self.conf.infra[self.name]).__name__
 
     def manage_db(self):
-        return self.get_db_type() in ('RDS', 'Aurora')
+        return self.get_db_type() in ('RDS', 'Aurora', 'PgSQL')
 
     def get_db(self):
         az = self.conf.az
@@ -81,6 +82,10 @@ class System():
 
         elif self.dbtype == 'Aurora':
             self.db = aurora.Aurora(az, sg, infra, self.dconn, self.djson)
+
+        elif self.dbtype == 'PgSQL':
+            self.db = pgsql.PgSQL(self.name,
+                                  self.conf, infra, self.lconn, self.djson)
 
         return self.db
 
@@ -97,9 +102,10 @@ class System():
         cntl.rsync(ip)
 
         # install os tools:
+        command = MAKE_OS_TOOLS % self.conf.loader.os
         self.log.info('%s: setup OS and TPC-H tools', self.name)
-        self.log.info(MAKE_OS_TOOLS)
-        cntl.execute_remote_command(ip, MAKE_OS_TOOLS)
+        self.log.info(command)
+        cntl.execute_remote_command(ip, command)
         return
 
     def prepare(self):
@@ -116,6 +122,15 @@ class System():
             self.db = aurora.Aurora(az, sg, infra, self.dconn, self.djson)
             self.log.info('%s: create db: %s', self.name, self.db.create())
 
+        elif self.dbtype == 'PgSQL':
+            dbname = 'db.%s' % self.name
+            self.db = pgsql.PgSQL(dbname,
+                                  self.conf, infra, self.lconn, self.djson)
+            self.log.info('%s: create db: %s', self.name, self.db.create())
+
+            # PgSQL database type needs being prepared, we manage it ourself
+            self.db.prepare()
+
         else:
             # other types (citus, pgsql) are expected to provide a DSN
             pass
@@ -128,11 +143,8 @@ class System():
 
     def dsn(self):
         self.get_db()
-        if self.dbtype in ('RDS', 'Aurora'):
+        if self.dbtype in ('RDS', 'Aurora', 'PgSQL'):
             return self.db.dsn()
-
-        elif self.dbtype == 'PgSQL':
-            return self.conf.infra[self.name].dsn
 
         elif self.dbtype == 'Citus':
             return self.conf.infra[self.name].dsn
@@ -175,9 +187,9 @@ class System():
             if self.db:
                 # first do the AWS API call, then the ssh:22 ping, to leave
                 # some more time to the instance to be ready
-                return self.db.status() == 'available' and utils.ping(ip)
+                return self.db.is_ready() and utils.ping(ip)
             else:
-                # we're ready is the loader has an IP already
+                # we're ready if the loader has an IP already
                 return utils.ping(ip)
         else:
             # the loader isn't running yet, we're not ready

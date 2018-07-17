@@ -26,6 +26,16 @@ class Instance():
         if self.filename and os.path.exists(self.filename) and self.id:
             return self.id
 
+        ebs = {
+            # 'Encrypted': False,
+            'DeleteOnTermination': True,
+            'VolumeSize': self.conf.ebs.size,
+            'VolumeType': self.conf.ebs.stype
+        }
+
+        if self.conf.ebs.stype == 'io1':
+            ebs['Iops'] = self.conf.ebs.iops
+
         out = self.conn.run_instances(
             ImageId = self.conf.loader.ami,
             InstanceType = self.conf.loader.instance,
@@ -37,13 +47,7 @@ class Instance():
             BlockDeviceMappings = [
                 {
                     'DeviceName': '/dev/sda1',
-                    'Ebs': {
-                        'Encrypted': False,
-                        'DeleteOnTermination': True,
-                        'Iops': self.conf.loader.iops,
-                        'VolumeSize': self.conf.loader.size,
-                        'VolumeType': self.conf.loader.stype
-                    }
+                    'Ebs': ebs
                 }
             ],
             MinCount = 1,

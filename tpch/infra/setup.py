@@ -8,12 +8,12 @@ import configparser
 from datetime import date, datetime
 from collections import namedtuple
 
-Loader_conf = namedtuple('EC2', 'instance ami iops size stype')
-EBS_conf    = namedtuple('EBS', 'iops size type')
+Loader_conf = namedtuple('EC2', 'instance ami os')
+EBS_conf    = namedtuple('EBS', 'iops size stype')
 RDS_conf    = namedtuple('RDS',
                          'label iname dbname iops size iclass stype version')
 Aurora_conf = namedtuple('Aurora', 'label cluster iname dbname iclass stype')
-PgSQL_conf  = namedtuple('PgSQL', 'label dsn')
+PgSQL_conf  = namedtuple('PgSQL', 'label ami os instance pgversion')
 Citus_conf  = namedtuple('Citus', 'label dsn')
 
 
@@ -29,12 +29,18 @@ class Setup():
         self.sg      = conf.get('aws', 'SG')
         self.keyname = conf.get('aws', 'KeyName')
 
+        self.ebs = None
+        if conf.has_section('ebs'):
+            self.ebs = EBS_conf(
+                iops      = conf.getint('ebs', 'iops'),
+                size      = conf.getint('ebs', 'size'),
+                stype     = conf.get('ebs', 'stype')
+            )
+
         self.loader = Loader_conf(
             instance  = conf.get('loader', 'instance'),
             ami       = conf.get('loader', 'ami'),
-            iops      = conf.getint('loader', 'iops'),
-            size      = conf.getint('loader', 'size'),
-            stype     = conf.get('loader', 'stype')
+            os        = conf.get('loader', 'os')
         )
 
         self.infra = {}
@@ -127,6 +133,9 @@ class Setup():
     def read_pgsql(self, conf, section):
         pgsql = PgSQL_conf(
             label = self.get_label(conf, section),
-            dsn   = conf.get(section, 'dsn')
+            instance  = conf.get(section, 'instance'),
+            ami       = conf.get(section, 'ami'),
+            os        = conf.get(section, 'os'),
+            pgversion = conf.get(section, 'pgversion')
         )
         return pgsql

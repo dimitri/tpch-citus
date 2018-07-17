@@ -105,10 +105,15 @@ class Run():
                 db_dsn[dbinfo.label] = dbinfo.dsn
 
             if dbinfo and s.manage_db():
-                print("%20s | %20s | %15s | %15s |" % (dbinfo.label,
-                                                       dbinfo.id,
-                                                       dbinfo.iclass,
-                                                       dbinfo.status))
+                if s.get_db_type() == 'PgSQL':
+                    print("%20s | %20s | %15s | %15s | %15s" %
+                          (dbinfo.label, dbinfo.id, dbinfo.iclass, dbinfo.status,
+                           s.get_db().public_ip()))
+                else:
+                    print("%20s | %20s | %15s | %15s |" % (dbinfo.label,
+                                                           dbinfo.id,
+                                                           dbinfo.iclass,
+                                                           dbinfo.status))
 
         if with_dsn:
             print()

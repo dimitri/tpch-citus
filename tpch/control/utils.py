@@ -81,19 +81,19 @@ def logfile(name, prefix):
     return os.path.abspath(os.path.join(logdir(name), filename))
 
 
-def rsync(ip, verbose=False):
+def rsync(ip, verbose=False, username=REMOTE_USER):
     command = 'rsync %s %s/ %s@%s:tpch/' \
-              % (RSYNC_OPTS, TOPDIR, REMOTE_USER, ip)
+              % (RSYNC_OPTS, TOPDIR, username, ip)
     run_command('RSYNC', command)
 
 
-def upload(ip, src, dst):
-    command = 'scp %s %s@%s:%s' % (src, REMOTE_USER, ip, dst)
+def upload(ip, src, dst, username=REMOTE_USER):
+    command = 'scp %s %s@%s:%s' % (src, username, ip, dst)
     run_command('scp upload', command)
 
 
-def download(ip, src, dst):
-    command = 'scp %s@%s:%s %s' % (REMOTE_USER, ip, src, dst)
+def download(ip, src, dst, username=REMOTE_USER):
+    command = 'scp %s@%s:%s %s' % (username, ip, src, dst)
     run_command('scp download', command)
 
 
@@ -124,10 +124,10 @@ class IgnoreHostKeyPolicy(MissingHostKeyPolicy):
         return
 
 
-def execute_remote_command(ip, command, quiet=False):
+def execute_remote_command(ip, command, quiet=False, username=REMOTE_USER):
     client = SSHClient()
     client.set_missing_host_key_policy(IgnoreHostKeyPolicy)
-    client.connect(ip, username=REMOTE_USER)
+    client.connect(ip, username=username)
     stdin, stdout, stderr = client.exec_command(command)
 
     rc = stdout.channel.recv_exit_status()
@@ -140,7 +140,7 @@ def execute_remote_command(ip, command, quiet=False):
         log = logging.getLogger('TPCH')
 
         log.error("ssh command returned %d" % rc)
-        log.error("ssh -l %s %s %s" % (REMOTE_USER, ip, command))
+        log.error("ssh -l %s %s %s" % (username, ip, command))
         print(command)
         for line in out:
             print(line)
@@ -152,12 +152,15 @@ def execute_remote_command(ip, command, quiet=False):
 
 
 class RemoteSession():
-    def __init__(self, ip):
+    def __init__(self, ip, username=REMOTE_USER):
+        self.username = username
+
         self.client = SSHClient()
         self.client.set_missing_host_key_policy(IgnoreHostKeyPolicy)
-        self.client.connect(ip, username=REMOTE_USER)
+        self.client.connect(ip, username=self.username)
 
         self.sftp = self.client.open_sftp()
+
 
     def execute(self, command):
         stdin, stdout, stderr = self.client.exec_command(command)
@@ -170,7 +173,7 @@ class RemoteSession():
             log = logging.getLogger('TPCH')
 
             log.error("ssh command returned %d" % rc)
-            log.error("ssh -l %s %s %s" % (REMOTE_USER, ip, command))
+            log.error("ssh -l %s %s %s" % (self.username, ip, command))
             print(command)
             for line in out:
                 print(line)

@@ -22,14 +22,41 @@ PACKAGES = git htop tmux emacs postgresql96* python36 python36-devel python36-pi
 TABLES   = nation, region, part, supplier, partsupp, customer, orders, lineitem
 VTABLES  = nation region part supplier partsupp customer orders lineitem
 
-all: os repo ;
+APT_PG_O_KEY = https://www.postgresql.org/media/keys/ACCC4CF8.asc
 
-os:
+rh:
 	sudo yum -q -y groupinstall "Development Tools"
 	sudo yum -q -y install $(PACKAGES)
 	sudo localedef -i en_US -f UTF-8 en_US.UTF-8
 	./scripts/install-local-pgsql.sh
 	psql -v ON_ERROR_STOP=1 -f schema/tracking.sql -d tpch-results
+
+deb:
+	sudo cp scripts/pgdg.list /etc/apt/sources.list.d/pgdg.list
+	sudo apt-get install -y wget ca-certificates python3 tmux git htop ipcalc
+	wget --quiet -O - $(APT_PG_O_KEY) | sudo apt-key add -
+	sudo apt-get update
+	sudo apt-get -y upgrade
+
+deb-pg9.6: deb
+	sudo apt-get install -y postgresql-9.6
+	sudo ./scripts/install-tpch-pgsql.sh 9.6
+
+deb-pg10: deb
+	sudo apt-get install -y postgresql-10
+	sudo ./scripts/install-tpch-pgsql.sh 10
+
+deb-pg11:
+	sudo cp scripts/pgdg-11.list /etc/apt/sources.list.d/pgdg.list
+	sudo apt-get install -y wget ca-certificates python3 tmux git htop ipcalc
+	wget --quiet -O - $(APT_PG_O_KEY) | sudo apt-key add -
+	sudo apt-get update
+	sudo apt-get -y upgrade
+	sudo apt-get -y install postgresql-11
+	sudo ./scripts/install-tpch-pgsql.sh 11
+
+getipaddr:
+	./scripts/getipaddr.py
 
 tools:
 	sudo pip-3.6 install -r requirements.txt
@@ -70,3 +97,4 @@ dump:
 
 .PHONY: dbgen repo os load stream refresh drop
 .PHONY: schema constraints vacuum
+.PHONY: deb deb-pg9.6 deb-pg10 deb-pg11

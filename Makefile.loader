@@ -48,6 +48,7 @@ deb-pg10: deb
 
 deb-pg11:
 	sudo cp scripts/pgdg-11.list /etc/apt/sources.list.d/pgdg.list
+	sudo cp scripts/pgdg.pref /etc/apt/preferences.d/pgdg.pref
 	sudo apt-get install -y wget ca-certificates python3 tmux git htop ipcalc
 	wget --quiet -O - $(APT_PG_O_KEY) | sudo apt-key add -
 	sudo apt-get update

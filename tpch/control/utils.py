@@ -148,6 +148,9 @@ def execute_remote_command(ip, command, quiet=False, username=REMOTE_USER):
             print(line)
         print()
 
+    if rc != 0:
+        raise RuntimeError(command)
+
     return out, err
 
 

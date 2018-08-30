@@ -1,6 +1,6 @@
 click
 psycopg2-binary
-python-daemon
+python-daemon==2.1.2
 service
 paramiko
 boto3

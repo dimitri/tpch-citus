@@ -18,7 +18,9 @@ PSQL     = psql -X -a -d $(DSN)
 COPY_DIR = $(TOP)/../
 PSQL_RES = psql -X -d tpch-results
 
-PACKAGES = git htop tmux emacs postgresql96* python36 python36-devel python36-pip
+PACKAGES = git htop tmux emacs postgresql96* python36 python36-devel python36-pip python36-docutils
+DEB_PKGS = wget ca-certificates python3 python3-pip python3-docutils tmux git htop ipcalc
+
 TABLES   = nation, region, part, supplier, partsupp, customer, orders, lineitem
 VTABLES  = nation region part supplier partsupp customer orders lineitem
 
@@ -33,7 +35,7 @@ rh:
 
 deb:
 	sudo cp scripts/pgdg.list /etc/apt/sources.list.d/pgdg.list
-	sudo apt-get install -y wget ca-certificates python3 tmux git htop ipcalc
+	sudo apt-get install -y $(DEB_PKGS)
 	wget --quiet -O - $(APT_PG_O_KEY) | sudo apt-key add -
 	sudo apt-get update
 	sudo apt-get -y upgrade
@@ -49,7 +51,7 @@ deb-pg10: deb
 deb-pg11:
 	sudo cp scripts/pgdg-11.list /etc/apt/sources.list.d/pgdg.list
 	sudo cp scripts/pgdg.pref /etc/apt/preferences.d/pgdg.pref
-	sudo apt-get install -y wget ca-certificates python3 tmux git htop ipcalc
+	sudo apt-get install -y $(DEB_PKGS)
 	wget --quiet -O - $(APT_PG_O_KEY) | sudo apt-key add -
 	sudo apt-get update
 	sudo apt-get -y upgrade

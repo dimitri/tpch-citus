@@ -65,13 +65,13 @@ class Setup():
             tables      = self.conf.get('pgsql', 'tables'),
             constraints = self.conf.get('pgsql', 'constraints').split(' '),
             drop        = self.conf.get('pgsql', 'drop'),
-            vacuum      = self.conf.get('pgsql', 'vacuum'))
+            vacuum      = self.conf.get('pgsql', 'vacuum').split(' '))
 
         self.citus = Schema(
             tables      = self.conf.get('citus', 'tables'),
             constraints = self.conf.get('citus', 'constraints').split(' '),
             drop        = self.conf.get('pgsql', 'drop'),
-            vacuum      = self.conf.get('pgsql', 'vacuum'))
+            vacuum      = self.conf.get('pgsql', 'vacuum').split(' '))
 
         self.results = Results(dsn = self.conf.get('results', 'dsn'))
 

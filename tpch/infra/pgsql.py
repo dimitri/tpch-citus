@@ -14,7 +14,7 @@ from ..control import utils as cntl
 
 MAKEFILE     = 'Makefile.loader'
 GET_IP_ADDR  = 'make -s -C tpch -f %s getipaddr' % MAKEFILE
-MAKE_PROV_DB = 'make -C tpch -f %s %%s' % MAKEFILE
+MAKE_PROV_DB = 'make SBUFS=%%s -C tpch -f %s %%s' % MAKEFILE
 
 
 class PgSQL(instance.Instance):
@@ -105,7 +105,7 @@ class PgSQL(instance.Instance):
 
         # run e.g. make -f Makefile.loader deb-pg11
         target = '%s-pg%s' % (self.spec.os, self.spec.pgversion)
-        command = MAKE_PROV_DB % target
+        command = MAKE_PROV_DB % (self.spec.sbufs, target)
         self.log.info('%s: %s', self.name, command)
         cntl.execute_remote_command(ip, command, username=self.username)
 

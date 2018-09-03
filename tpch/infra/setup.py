@@ -8,12 +8,14 @@ import configparser
 from datetime import date, datetime
 from collections import namedtuple
 
+DEFAULT_SHARED_BUFFERS = '4GB'
+
 Loader_conf = namedtuple('EC2', 'instance ami os')
 EBS_conf    = namedtuple('EBS', 'iops size stype')
 RDS_conf    = namedtuple('RDS',
                          'label iname dbname iops size iclass stype version')
 Aurora_conf = namedtuple('Aurora', 'label cluster iname dbname iclass stype')
-PgSQL_conf  = namedtuple('PgSQL', 'label ami os instance pgversion')
+PgSQL_conf  = namedtuple('PgSQL', 'label ami os instance pgversion sbufs')
 Citus_conf  = namedtuple('Citus', 'label dsn')
 
 
@@ -131,11 +133,17 @@ class Setup():
         return citus
 
     def read_pgsql(self, conf, section):
+        sbufs = DEFAULT_SHARED_BUFFERS
+        if conf.has_option(section, 'shared_buffers'):
+            sbufs = conf.get(section, 'shared_buffers')
+
         pgsql = PgSQL_conf(
             label = self.get_label(conf, section),
             instance  = conf.get(section, 'instance'),
             ami       = conf.get(section, 'ami'),
             os        = conf.get(section, 'os'),
-            pgversion = conf.get(section, 'pgversion')
+            pgversion = conf.get(section, 'pgversion'),
+            sbufs     = sbufs
         )
+
         return pgsql

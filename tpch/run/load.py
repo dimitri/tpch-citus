@@ -80,7 +80,8 @@ class Load(Schema):
             phase, start=start, secs=secs, steps=self.steps)
 
         self.log("vacuum analyze")
-        self.install_schema("vacuum analyze", self.schema.vacuum, silent=True)
+        for sqlfile in self.schema.vacuum:
+            self.install_schema(sqlfile, sqlfile, silent=True)
 
         self.log("loaded %d steps of data in %gs, using %d CPU",
                  len(self.steps), secs, self.cpu)

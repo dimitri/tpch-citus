@@ -81,6 +81,7 @@ class Run():
         if not self.has_infra():
             return
 
+        print()
         print("Infra for benchmark %s:" % self.name)
         print()
         print("%20s | %20s | %15s | %15s | %15s"
@@ -120,7 +121,6 @@ class Run():
             print("Database Connection Strings")
             for name, dsn in db_dsn.items():
                 print("%9s: %s" % (name, dsn))
-            print()
 
         return
 

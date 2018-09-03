@@ -124,9 +124,7 @@ def infra(name, orphans, dsn):
     if name:
         run = bench.Run(name)
         run.list()
-        print()
         run.list_infra(dsn)
-        print()
 
     else:
         for name in tpch.control.utils.list_runs():
@@ -136,13 +134,11 @@ def infra(name, orphans, dsn):
                 # only list infra running for no reasons
                 if run.has_infra() and not run.tpch_is_running():
                     run.list()
-                    print()
                     run.list_infra(dsn)
-                    print()
+
             else:
                 # here we list everything we know
                 run.list_infra(dsn)
-                print()
     return
 
 
@@ -279,12 +275,20 @@ def cancel(name, system):
 
 
 @cli.command()
-@click.argument('name')
+@click.option('--name')
 @click.option('--system')
-def terminate(name, system):
+@click.option('--orphans', is_flag=True, default=False)
+def terminate(name, system, orphans):
     """Terminate loaders, delete database instances"""
-    r = bench.Run(name, system)
-    r.terminate()
+    if orphans:
+        for name in tpch.control.utils.list_runs():
+            r = bench.Run(name, system)
+
+            if r.has_infra() and not r.tpch_is_running():
+                r.terminate()
+    else:
+        r = bench.Run(name, system)
+        r.terminate()
 
 @cli.command()
 @click.argument('archive', type=click.Path())

@@ -199,8 +199,8 @@ class System():
         if self.is_ready():
             ip = self.loader.public_ip()
             command = "cat /tmp/TPCH.pid"
-            out, _ = cntl.execute_remote_command(ip, command, quiet=True)
             try:
+                out, _ = cntl.execute_remote_command(ip, command, quiet=True)
                 if out and len(out) == 1:
                     pid = int(out[0])
                     return True
@@ -284,7 +284,6 @@ class System():
         # terminate only the loader
         if os.path.exists(self.ljson):
             self.log.info("%s: terminating loader %s", self.name, self.loader.id)
-            print(self.loader.terminate())
         return
 
     def update(self, resdb):

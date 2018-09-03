@@ -3,6 +3,7 @@ import sys
 import json
 import time
 import boto3
+import botocore
 import configparser
 
 from collections import namedtuple
@@ -79,8 +80,11 @@ class Instance():
 
     def status(self):
         if hasattr(self, "id"):
-            self._status = self.conn.describe_instance_status(
-                InstanceIds = [self.id])
+            try:
+                self._status = self.conn.describe_instance_status(
+                    InstanceIds = [self.id])
+            except botocore.exceptions.ClientError:
+                return "unknown"
         else:
             return "unknown"
 
@@ -118,7 +122,13 @@ class Instance():
         return res['StoppingInstances'][0]['CurrentState']['Name']
 
     def terminate(self):
-        res = self.conn.terminate_instances(InstanceIds = [self.id])
-        if self.filename and os.path.exists(self.filename):
-            os.remove(self.filename)
-        return res['TerminatingInstances'][0]['CurrentState']['Name']
+        try:
+            res = self.conn.terminate_instances(InstanceIds = [self.id])
+            if self.filename and os.path.exists(self.filename):
+                os.remove(self.filename)
+            return res['TerminatingInstances'][0]['CurrentState']['Name']
+        except botocore.exceptions.ClientError as error:
+            print(error)
+            if self.filename and os.path.exists(self.filename):
+                os.remove(self.filename)
+            return None

@@ -39,10 +39,14 @@ class Setup():
                 stype     = conf.get('ebs', 'stype')
             )
 
+        loader_os = 'rh'
+        if conf.has_option('loader', 'os'):
+            loader_os = conf.get('loader', 'os')
+
         self.loader = Loader_conf(
             instance  = conf.get('loader', 'instance'),
             ami       = conf.get('loader', 'ami'),
-            os        = conf.get('loader', 'os')
+            os        = loader_os
         )
 
         self.infra = {}
@@ -133,6 +137,10 @@ class Setup():
         return citus
 
     def read_pgsql(self, conf, section):
+        # backward compat' when it was just a dsn here
+        if conf.has_option(section, 'dsn'):
+            return None
+
         sbufs = DEFAULT_SHARED_BUFFERS
         if conf.has_option(section, 'shared_buffers'):
             sbufs = conf.get(section, 'shared_buffers')

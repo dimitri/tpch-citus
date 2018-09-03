@@ -11,6 +11,7 @@ class TaskPool():
         self.pause = pause
 
         self.tasks_done = []
+        self.previous_report_time = 0
 
     def report_progress(self):
         pass
@@ -34,9 +35,15 @@ class TaskPool():
             futures.append(self.pool.submit(fun, *args))
 
         while (time.monotonic() - self.start) < (self.duration):
-            # don't busy loop too hard on the system when running long
-            # queries (by TPC-H design)
-            time.sleep(self.pause)
+            # we used to avoid busy looping too hard on the system when
+            # running long queries (by TPC-H design), by adding a call to
+            # time.sleep(self.pause) here.
+            #
+            # avoiding the sleep makes the TPCH driver use 100% of a CPU on
+            # the loader machine, but because we mostly ever wait for query
+            # results it seems fair to use that much power in exchange for
+            # better results: we actually launch the next query as soon as
+            # we are ready to do so.
 
             # collect results from the future as they are available,
             # and start other threads to keep them CPU busy

@@ -31,12 +31,16 @@ def stream(dsn, queries, system):
 
 class StreamTaskPool(TaskPool):
     def report_progress(self):
-        secs = time.monotonic() - self.start
-        self.logger.info('%s: %d query streams executed in %gs, %gQPM',
-                         self.system,
-                         len(self.tasks_done),
-                         secs,
-                         len(self.tasks_done) / secs * 60.0)
+        now = time.monotonic()
+
+        if now - self.previous_report_time >= self.pause:
+            secs = now - self.start
+            self.logger.info('%s: %d query streams executed in %gs, %gQPM',
+                             self.system,
+                             len(self.tasks_done),
+                             secs,
+                             len(self.tasks_done) / secs * 60.0)
+            self.previous_report_time = now
 
     def handle_results(self, result):
         self.nbs += 1

@@ -112,8 +112,10 @@ class PgSQL(instance.Instance):
         return
 
     def is_ready(self):
-        if self.id:
+        if hasattr(self, "id") and self.id:
             return self.status() == 'running'
+        else:
+            return False
 
     def getipaddr(self):
         ip = self.wait_for_public_ip()

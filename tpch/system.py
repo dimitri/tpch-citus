@@ -284,6 +284,7 @@ class System():
         # terminate only the loader
         if os.path.exists(self.ljson):
             self.log.info("%s: terminating loader %s", self.name, self.loader.id)
+            self.loader.terminate()
         return
 
     def update(self, resdb):
